@@ -1,5 +1,6 @@
 PyMySQL 
 uvicorn
+git+https://github.com/iqoptionapi/iqoptionapi.git
 gunicorn
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.14
