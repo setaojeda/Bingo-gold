@@ -1,5 +1,6 @@
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch() 
+from flask_socketio import SocketIO, emit
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
@@ -57,7 +58,7 @@ app.config['MAIL_USERNAME'] = 'anaveleci@gmail.com '
 app.config['MAIL_PASSWORD'] = 'kzco ozhl akli ojf'
 app.config['MAIL_DEFAULT_SENDER'] = 'anaveleci@gmail.com'
 
-
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # --- Inicializacion de SQLAlchemy y Flask-Mail ---
 db = SQLAlchemy(app)
 mail = Mail(app)
@@ -682,55 +683,38 @@ def admin_bingo_panel():
 @login_required
 @roles_required("admin")
 def call_bingo_number():
-
     active_game = GameSession.query.filter_by(status='active').order_by(GameSession.created_at.desc()).first()
 
     if not active_game:
-        return jsonify({'error': 'No hay una partida de bingo activa para cantar nÃºmeros.'}), 400
+        return jsonify({'error': 'No hay una partida activa.'}), 400
 
-    if active_game.current_calling_number is not None:
-        time_elapsed = datetime.now() - active_game.call_start_time
-        if time_elapsed.total_seconds() < 10:
-            return jsonify({'error': f'Ya se estÃ¡ cantando el nÃºmero {active_game.current_calling_number}. Espere a que el temporizador termine.'}), 400
-        else:
-            numbers_called = active_game.get_numbers_called()
-            if active_game.current_calling_number not in numbers_called:
-                numbers_called.append(active_game.current_calling_number)
-                active_game.numbers_called = json.dumps(numbers_called)
-                active_game.current_calling_number = None
-                active_game.call_start_time = None
-                db.session.commit()
-                return jsonify({
-                    'message': f'NÃºmero {numbers_called[-1]} revelado (fallback).',
-                    'new_number': numbers_called[-1],
-                    'all_called_numbers': numbers_called,
-                    'is_revealed': True
-                })
-
-
+    # ... (toda tu lógica de validación de números disponibles que ya tienes) ...
     numbers_called = active_game.get_numbers_called()
     called_numbers_set = set(numbers_called)
     all_possible_numbers = set(range(1, 76))
     available_numbers = list(all_possible_numbers - called_numbers_set)
 
     if not available_numbers:
-        return jsonify({'error': 'Todos los nÃºmeros ya han sido cantados. Â¡Juego terminado!'}), 400
+        return jsonify({'error': '¡Juego terminado!'}), 400
 
     new_number = random.choice(available_numbers)
-
     active_game.current_calling_number = new_number
     active_game.call_start_time = datetime.now()
     db.session.commit()
 
-    return jsonify({
-        'message': f'Temporizador para el nÃºmero {new_number} iniciado.',
+    # --- AQUÍ ESTÁ EL CAMBIO MÁGICO ---
+    # Avisamos a todos los jugadores al instante
+    socketio.emit('nuevo_numero_iniciado', {
         'new_number': new_number,
         'call_start_time': int(active_game.call_start_time.timestamp() * 1000),
-        'all_called_numbers': numbers_called,
-
-        'is_revealed': False
+        'all_called_numbers': numbers_called
     })
 
+    return jsonify({
+        'message': f'Temporizador para el número {new_number} iniciado.',
+        'new_number': new_number,
+        'call_start_time': int(active_game.call_start_time.timestamp() * 1000)
+    })
 
 
 @app.route('/admin/bingo/reset_game', methods=['POST'])
@@ -830,3 +814,6 @@ def internal_error(error):
     """Manejador para errores internos del servidor."""
     db.session.rollback()
     return render_template('500.html'), 500 # AsegÃºrate de tener un 500.html
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=10000)
