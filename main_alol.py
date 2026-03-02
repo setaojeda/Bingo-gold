@@ -689,41 +689,53 @@ def admin_bingo_panel():
 
 @app.route('/admin/bingo/call_number', methods=['POST'])
 @login_required
-#@roles_required("admin")
+# @roles_required("admin") # Pruébalo desactivado primero
 def call_bingo_number():
-    # Buscamos la partida activa
-    active_game = GameSession.query.filter_by(status='active').order_by(GameSession.created_at.desc()).first()
+    try:
+        # 1. Buscar partida activa
+        active_game = GameSession.query.filter_by(status='active').order_by(GameSession.created_at.desc()).first()
 
-    if not active_game:
-        return jsonify({'error': 'No hay una partida activa.'}), 400
+        if not active_game:
+            return jsonify({'error': 'No hay una partida activa.'}), 400
 
-    # Obtenemos los números que ya salieron
-    numbers_called = active_game.get_numbers_called()
-    called_numbers_set = set(numbers_called)
-    all_possible_numbers = set(range(1, 76)) # Números del 1 al 75
-    
-    # Vemos cuáles quedan libres
-    available_numbers = list(all_possible_numbers - called_numbers_set)
+        # 2. Cargar números (Asegurándonos de que sea una lista real)
+        try:
+            # Intentamos cargar lo que hay en la DB, si está vacío o roto, empezamos lista nueva
+            raw_data = active_game.numbers_called
+            numbers_called = json.loads(raw_data) if raw_data else []
+        except:
+            numbers_called = []
 
-    if not available_numbers:
-        return jsonify({'error': '¡Ya salieron todos los números!'}), 400
+        all_possible_numbers = set(range(1, 76))
+        available_numbers = list(all_possible_numbers - set(numbers_called))
 
-    # Elegimos uno al azar
-    new_number = random.choice(available_numbers)
-    
-    # Actualizamos la base de datos
-    numbers_called.append(new_number)
-    active_game.set_numbers_called(numbers_called)
-    active_game.current_calling_number = new_number
-    active_game.call_start_time = datetime.now()
-    
-    db.session.commit() 
-    emitir_estado_bingo()
-    return jsonify({
-        'status': 'success',
-        'new_number': new_number,
-        'numbers_called': numbers_called
-    })
+        if not available_numbers:
+            return jsonify({'error': '¡Ya salieron todos los números!'}), 400
+
+        # 3. Elegir número
+        new_number = random.choice(available_numbers)
+        numbers_called.append(new_number)
+        
+        # 4. GUARDADO DIRECTO (Aquí es donde evitamos el Error 500)
+        active_game.numbers_called = json.dumps(numbers_called) # Forzamos a que sea un texto JSON
+        active_game.current_calling_number = new_number
+        active_game.call_start_time = datetime.now()
+        
+        db.session.commit() 
+        
+        # 5. Emitir por Socket (Nuestra función nueva)
+        emitir_estado_bingo()
+
+        return jsonify({
+            'status': 'success',
+            'new_number': new_number
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        # Esto forzará a que el error aparezca en tu pantalla aunque Render no lo muestre
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
 
 @app.route('/admin/bingo/reset_game', methods=['POST'])
 @login_required
