@@ -1,0 +1,63 @@
+body {
+    background-color: #111111; /* Un gris oscuro */
+    /* background-image: url("{{ url_for('static', filename='fondo_bingo.jpg') }}"); /* Comentado/eliminado */
+    background-size: cover; /* Esto ya no serÃ­a necesario, pero no estorba */
+    background-repeat: no-repeat; /* Esto ya no serÃ­a necesario */
+    background-attachment: fixed; /* Esto ya no serÃ­a necesario */
+    background-position: center center; /* Esto ya no serÃ­a necesario */
+    font-family: "Roboto Condensed", sans-serif;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+/* El resto de tu CSS se mantendrÃ­a igual */
+
+.roboto-condensed {
+  font-family: "Roboto Condensed", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400; /* Puedes ajustar el peso de la fuente (normal, bold, etc.) */
+  font-style: normal;
+}
+
+h1 {
+    color: white;
+    font-size: 2.2em;
+    text-shadow: 2px 2px 4px #000000;
+}
+
+nav {
+    background-color: #222222; /* CambiÃ© la transparencia a 0.3 */
+    color: white;
+    padding: 3px 0;
+    display: flex;
+    justify-content: center; /* Centra los elementos horizontalmente */
+    align-items: center;
+    flex-wrap: wrap;
+    height: 50px;
+}
+
+.navbar-logo {
+    position: absolute; /* Posiciona el logo absolutamente */
+    left: 10px; /* Lo coloca a 10px del borde izquierdo */
+    display: flex;
+    align-items: center; /* Centra verticalmente el logo */
+    background-color: rgba(41, 41, 41, 0); /* Agregamos un fondo transparente */
+}
+
+.navbar-logo img {
+    max-height: 40px;
+    max-width: 90%;
+    display: block;
+}
+
+.navbar-image {
+    /* order: 2; Eliminamos order porque ahora centramos con flexbox */
+    /* margin: 0 auto; Eliminamos el margen automÃ¡tico */
+}
+
+.navbar-image img {
+    max-height: 44px;
+    max-width: 100%;
+    display: block;
+}
