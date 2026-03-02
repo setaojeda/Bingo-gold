@@ -316,30 +316,39 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { statusMsg.style.display = 'none'; }, 4000);
     }
 
-    // Función para "Cantar un número" (Envía la orden, pero no actualiza la UI directamente)
     async function callNumber() {
-        callBtn.disabled = true;
-        callBtn.textContent = 'Cantando...';
+    callBtn.disabled = true;
+    callBtn.textContent = 'Cantando...';
 
-        try {
-            const response = await fetch('/admin/bingo/call_number', { method: 'POST' });
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Error desconocido');
+    try {
+        const response = await fetch('/admin/bingo/call_number', { 
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
-            
-            showStatus('Número sacado de la tómbola.');
-            // Ya NO llamamos a fetchGameStatus() aquí.
-            // El servidor emitirá el evento 'estado_bingo_actualizado' y el socket lo atrapará.
+        });
 
-        } catch (error) {
-            console.error('Error al cantar número:', error);
-            showStatus(`Error: ${error.message}`, true);
-            callBtn.disabled = false;
-            callBtn.textContent = 'Cantar Nuevo Número';
+        // Si la respuesta no es OK (200), leemos el texto para saber qué pasó
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Respuesta del servidor no es JSON:", errorText);
+            throw new Error(`Error del servidor (${response.status})`);
         }
+
+        const data = await response.json();
+        showStatus('Número sacado de la tómbola.');
+
+    } catch (error) {
+        console.error('Error detallado:', error);
+        showStatus(`Error: ${error.message}`, true);
+    } finally {
+        // Esto se ejecuta siempre, falle o no
+        callBtn.disabled = false;
+        callBtn.textContent = 'Cantar Nuevo Número';
     }
+}
+
 
     // Función para reiniciar la partida
     async function resetGame() {
