@@ -561,6 +561,11 @@ def send_chat_message():
     db.session.add(new_message)
     db.session.commit()
 
+    socketio.emit('mensaje_recibido', {
+        'username': current_user.username,
+        'content': content,
+        'timestamp': datetime.now().strftime('%H:%M')
+    })
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
 
 
