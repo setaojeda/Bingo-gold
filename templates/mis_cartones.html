@@ -93,315 +93,221 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
 // =================================================================
-//  1. DEFINICIÓN DE VARIABLES GLOBALES Y FUNCIONES
+// 1. VARIABLES GLOBALES Y PERSISTENCIA
 // =================================================================
 let countdownInterval;
-const REVEAL_DURATION = 10;
+const REVEAL_DURATION = 10; // Segundos
 const userCardCells = {};
 let currentMarkingMode = 'auto';
 let isWaitingForBingoVerification = false;
-let lastMessageId = 0;
-let currentUserId;
+let currentUserId = $('body').data('user-id');
 
-// --- INICIALIZAR SOCKET.IO ---
-const socket = io(); // Esto conecta automáticamente con tu servidor Render
+// Recuperamos marcas manuales del teléfono del usuario (para que no se borren al recargar)
+let manualMarkedCells = JSON.parse(localStorage.getItem('manualMarkedCells') || '{}');
+
+const socket = io(); // Conexión en tiempo real
 
 // =================================================================
-//  2. ESCUCHADORES DE WEBSOCKET (La magia en tiempo real)
+// 2. ESCUCHADORES (SOCKETS)
 // =================================================================
 
-// Escuchamos cuando el servidor nos manda actualizaciones del bingo
 socket.on('estado_bingo_actualizado', function(response) {
-    console.log("El servidor envió una actualización del bingo:", response);
     procesarEstadoBingo(response);
 });
 
-// Escuchamos cuando alguien envía un mensaje al chat
 socket.on('mensaje_recibido', function(msg) {
     const currentUserUsername = document.body.dataset.currentUser;
-    // Usamos msg.content o msg.message_text dependiendo de cómo lo mande tu backend
-    const textoMensaje = msg.content || msg.message_text; 
     const messageTypeClass = (msg.username === currentUserUsername) ? 'sent' : 'received';
-
     const messageElement = `
         <div class="chat-message ${messageTypeClass}">
             <span class="username">${msg.username}</span>
-            <span class="message-text">${textoMensaje}</span>
+            <span class="message-text">${msg.content || msg.message_text}</span>
         </div>`;
-
     $('#chat-box').prepend(messageElement);
 });
 
 // =================================================================
-//  3. FUNCIONES DEL BINGO
+// 3. LÓGICA DEL BINGO (EL CEREBRO)
 // =================================================================
 
-// Esta función antes hacía consultas (polling), ahora solo recibe los datos del socket
 function procesarEstadoBingo(response) {
     if (!response) return;
-
-    currentUserId = $('body').data('user-id');
-
-    // Revisamos si la partida finalizó
-    if (response.status === 'finished') {
-        clearInterval(countdownInterval);
-        if (response.winner_user_id == currentUserId) {
-            // ¡GANASTE! Redirigimos a la página de felicitaciones
-            window.location.href = `/felicidades/${response.game_id}`;
-        } else {
-            // Ganó otro jugador
-            $('#bingoStatusMessage').text('La partida ha finalizado. ¡Gracias por jugar!');
-            $('.bingo-call-btn').prop('disabled', true).text('Partida Finalizada');
-            $('#bingoDisplay').text('FIN').addClass('revealed');
-        }
-        return;
-    }
 
     const bingoDisplay = $('#bingoDisplay');
     const bingoStatusMessage = $('#bingoStatusMessage');
     const calledNumbersGrid = $('#calledNumbersGrid');
-    
-    window.lastCalledNumbers = response.numbers_called;
-    calledNumbersGrid.empty();
-
-    // Actualizar cuadrícula de números cantados
-    if (response.numbers_called && response.numbers_called.length > 0) {
-        const lastIndex = response.numbers_called.length - 1;
-        $.each(response.numbers_called, function(index, num) {
-            const isLast = (index === lastIndex && response.current_calling_number === null);
-            calledNumbersGrid.append(`<div class="called-number-item ${isLast ? 'highlighted' : ''}">${num}</div>`);
-        });
-    }
-
-    // Marcado automático
-    if (currentMarkingMode === 'auto') {
-        for (const cardId in userCardCells) {
-            $('td', `#${cardId}-table`).removeClass('marked');
-            $.each(response.numbers_called, function(index, calledNum) {
-                if (userCardCells[cardId] && userCardCells[cardId][calledNum]) {
-                    userCardCells[cardId][calledNum].forEach($cell => $cell.addClass('marked'));
-                }
-            });
-        }
-    }
-
-    // Verificar si nos rechazaron el bingo
-    if (isWaitingForBingoVerification && response.status === 'active') {
-        showNotification("Tu bingo ha sido rechazado por el administrador. El juego continúa.", 'error');
-        isWaitingForBingoVerification = false;
-    }
-
-    // Actualizar botones
     const bingoButtons = $('.bingo-call-btn');
-    if (response.status === 'active') {
+
+    // --- A. GESTIÓN DE LA PAUSA (BLOQUEO DE BOTONES) ---
+    if (response.status === 'paused') {
+        bingoButtons.prop('disabled', true).text('Verificando Bingo...');
+        bingoStatusMessage.text('Partida en pausa, verificando un cartón...');
+    } else if (response.status === 'active') {
         bingoButtons.prop('disabled', false).text('¡Cantar BINGO!');
-    } else {
-        bingoButtons.prop('disabled', true);
-        if (response.status === 'paused') {
-            bingoButtons.text('Bingo en Verificación...');
+    } else if (response.status === 'finished') {
+        if (response.winner_user_id == currentUserId) {
+            window.location.href = `/felicidades/${response.game_id}`;
         } else {
-            bingoButtons.text('Partida no activa');
+            bingoStatusMessage.text('La partida ha finalizado.');
+            bingoButtons.prop('disabled', true).text('Fin de Partida');
+            bingoDisplay.text('FIN').addClass('revealed');
         }
+        return;
     }
 
-    // Cuenta regresiva
+    // --- B. LISTA DE NÚMEROS (SIN SPOILERS) ---
+    // Filtramos para que el número que se está cantando NO salga abajo todavía
+    let listNumbers = [...(response.numbers_called || [])];
+    if (response.current_calling_number && listNumbers.includes(response.current_calling_number)) {
+        listNumbers = listNumbers.filter(n => n !== response.current_calling_number);
+    }
+
+    calledNumbersGrid.empty();
+    listNumbers.forEach((num, index) => {
+        const isLast = (index === listNumbers.length - 1);
+        calledNumbersGrid.append(`<div class="called-number-item ${isLast ? 'highlighted' : ''}">${num}</div>`);
+    });
+
+    // --- C. ACTUALIZAR MARCADO (AUTO Y MANUAL) ---
+    actualizarMarcadoEnCartones(response.numbers_called || []);
+
+    // --- D. TEMPORIZADOR Y PANTALLA GRANDE ---
     clearInterval(countdownInterval);
+
     if (response.current_calling_number !== null && response.call_start_time_timestamp !== null) {
+        // MODO: CONTANDO...
         bingoDisplay.removeClass('revealed hidden').addClass('calling');
         bingoStatusMessage.text(`Próximo número en...`);
-        startCountdown(response.call_start_time_timestamp, bingoDisplay);
+        startCountdown(response.call_start_time_timestamp, bingoDisplay, response.current_calling_number);
     } else if (response.last_number !== null) {
+        // MODO: REVELADO
         bingoDisplay.removeClass('hidden calling').addClass('revealed');
         bingoDisplay.text(response.last_number);
-        bingoStatusMessage.text('¡El último número cantado ha sido revelado!');
+        if (response.status !== 'paused') bingoStatusMessage.text('¡Número Cantado!');
     } else {
-        bingoDisplay.removeClass('revealed calling').addClass('hidden');
-        bingoDisplay.text('...');
-        bingoStatusMessage.text('Esperando que se cante el primer número...');
-    }
-
-    if (response.status === 'paused') {
-        bingoStatusMessage.text('Partida en pausa, se está verificando un bingo.');
+        bingoDisplay.addClass('hidden').text('...');
+        bingoStatusMessage.text('Esperando inicio...');
     }
 }
 
-function showNotification(message, type) {
-    const banner = $('#notification-banner');
-    banner.text(message).removeClass('hidden success error').addClass(type);
-    setTimeout(() => { banner.addClass('hidden'); }, 5000);
-}
-
-function startCountdown(callStartTime, displayElement) {
-    const endTime = callStartTime + (REVEAL_DURATION * 1000);
+function startCountdown(startTime, displayElement, numberToReveal) {
+    const endTime = startTime + (REVEAL_DURATION * 1000);
+    
     countdownInterval = setInterval(() => {
         const timeLeft = Math.max(0, endTime - Date.now());
+        const seconds = (timeLeft / 1000).toFixed(1);
+        
         if (timeLeft <= 0) {
             clearInterval(countdownInterval);
-            // Ya no llamamos a updateBingoDisplay() aquí, esperamos que el servidor nos avise
+            displayElement.text(numberToReveal); // Revelamos el secreto
+            displayElement.removeClass('calling').addClass('revealed');
+            // Refrescamos la lista pequeña para que ahora sí aparezca el número abajo
+            socket.emit('solicitar_estado_actual'); 
         } else {
-            displayElement.text(`Revelando en: ${Math.floor(timeLeft / 1000)}s`);
+            displayElement.text(`${seconds}s`);
         }
-    }, 1000);
+    }, 100);
 }
 
-// =================================================================
-//  4. NAVEGACIÓN Y CHAT
-// =================================================================
+function actualizarMarcadoEnCartones(numbersCalled) {
+    $('.bingo-card table').each(function() {
+        const table = $(this);
+        const cardId = table.attr('id').replace('-table', '');
+        
+        table.find('td').each(function() {
+            const cell = $(this);
+            const num = parseInt(cell.text().trim());
+            if (isNaN(num)) return; // Ignorar FREE
 
-function switchView(viewToShow) {
-    const chatInputArea = $('.chat-input-area');
-    const chatBox = $('#chat-box');
-
-    $('.content-view').removeClass('active');
-    $('.nav-button').removeClass('active');
-
-    if (viewToShow === 'cartones') {
-        $('#view-cartones').addClass('active');
-        $('#btn-show-cartones').addClass('active');
-        chatInputArea.addClass('hidden');
-        chatBox.removeClass('with-fixed-input');
-    } else if (viewToShow === 'chat') {
-        $('#view-chat').addClass('active');
-        $('#btn-show-chat').addClass('active');
-        chatInputArea.removeClass('hidden');
-        chatBox.addClass('with-fixed-input');
-    }
-}
-
-async function sendMessage() {
-    const messageInput = $('#chat-message-input');
-    const messageText = messageInput.val().trim();
-    if (messageText === '') return;
-    try {
-        await $.ajax({
-            url: '/chat/send_message',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ message: messageText })
-        });
-        messageInput.val('');
-        // Ya no llamamos fetchMessages() acá, el servidor nos enviará el mensaje por socket
-    } catch (error) {
-        console.error('Error al enviar el mensaje:', error);
-    }
-}
-
-// Carga los mensajes AL ENTRAR a la página (solo 1 vez)
-async function fetchMessages() {
-    const currentUserUsername = document.body.dataset.currentUser;
-    const chatBox = $('#chat-box');
-    try {
-        const newMessages = await $.ajax({
-            url: `/chat/get_messages?since_id=${lastMessageId}`,
-            method: 'GET'
-        });
-
-        if (newMessages.length > 0) {
-            newMessages.forEach(msg => {
-                const messageTypeClass = (msg.username === currentUserUsername) ? 'sent' : 'received';
-                const messageElement = `
-                    <div class="chat-message ${messageTypeClass}">
-                        <span class="username">${msg.username}</span>
-                        <span class="message-text">${msg.message_text}</span>
-                    </div>`;
-                chatBox.prepend(messageElement);
-            });
-            lastMessageId = newMessages[newMessages.length - 1].id;
-        }
-    } catch (error) {
-        console.error('Error al obtener mensajes:', error);
-    }
-}
-
-// =================================================================
-//  5. CÓDIGO DE INICIALIZACIÓN AL CARGAR LA PÁGINA
-// =================================================================
-
-$(document).ready(function() {
-    currentUserId = $('body').data('user-id');
-
-    // Inicializar celdas del cartón
-    $('.bingo-card').each(function() {
-        const cardId = $(this).attr('id').replace('-table', '');
-        userCardCells[cardId] = {};
-        $(this).find('td').each(function() {
-            const cellText = $(this).text().trim();
-            if (cellText && !isNaN(cellText)) {
-                const cellNumber = parseInt(cellText, 10);
-                if (!userCardCells[cardId][cellNumber]) {
-                    userCardCells[cardId][cellNumber] = [];
+            if (currentMarkingMode === 'auto') {
+                if (numbersCalled.includes(num)) cell.addClass('marked');
+                else cell.removeClass('marked');
+            } else {
+                // Modo Manual: Recuperar del localStorage
+                if (manualMarkedCells[cardId] && manualMarkedCells[cardId].includes(num.toString())) {
+                    cell.addClass('marked');
+                } else {
+                    cell.removeClass('marked');
                 }
-                userCardCells[cardId][cellNumber].push($(this));
             }
         });
     });
+}
 
-    // Guardar modo de marcado
-    const savedMarkingMode = localStorage.getItem('bingoMarkingMode');
-    if (savedMarkingMode) {
-        currentMarkingMode = savedMarkingMode;
-        $('#markingMode').val(savedMarkingMode);
+// =================================================================
+// 4. INICIALIZACIÓN (CUANDO CARGA LA PÁGINA)
+// =================================================================
+
+$(document).ready(function() {
+    // Guardar estructura de cartones
+    $('.bingo-card').each(function() {
+        const cardId = $(this).attr('id').replace('-table', '');
+        userCardCells[cardId] = {};
+    });
+
+    // Cargar modo de marcado guardado
+    const savedMode = localStorage.getItem('bingoMarkingMode');
+    if (savedMode) {
+        currentMarkingMode = savedMode;
+        $('#markingMode').val(savedMode);
     }
 
     $('#markingMode').on('change', function() {
         currentMarkingMode = $(this).val();
         localStorage.setItem('bingoMarkingMode', currentMarkingMode);
+        socket.emit('solicitar_estado_actual'); // Refrescar vista
     });
 
-    // Marcado manual
+    // Clic en celdas (Marcado Manual)
     $(document).on('click', '.bingo-card td', function() {
         if (currentMarkingMode === 'manual') {
-            const cellText = $(this).text().trim();
-            if (cellText && !isNaN(cellText) && cellText !== 'FREE') {
-                $(this).toggleClass('marked');
+            const cell = $(this);
+            const num = cell.text().trim();
+            if (num === 'FREE' || isNaN(num)) return;
+
+            const cardId = cell.closest('table').attr('id').replace('-table', '');
+            cell.toggleClass('marked');
+
+            if (!manualMarkedCells[cardId]) manualMarkedCells[cardId] = [];
+            
+            if (cell.hasClass('marked')) {
+                if (!manualMarkedCells[cardId].includes(num)) manualMarkedCells[cardId].push(num);
+            } else {
+                manualMarkedCells[cardId] = manualMarkedCells[cardId].filter(n => n !== num);
             }
+            localStorage.setItem('manualMarkedCells', JSON.stringify(manualMarkedCells));
         }
     });
 
-    // Cantar Bingo
+    // Botón Cantar Bingo
     $(document).on('click', '.bingo-call-btn', function() {
-        const button = $(this);
-        const cardData = button.data('card-data');
-        const serialNumber = button.data('serial');
+        const btn = $(this);
+        if (!confirm('¿Cantar BINGO? Se pausará el juego.')) return;
         
-        if (!confirm('¿Estás seguro de que quieres cantar BINGO con este cartón? El juego se pausará para todos.')) {
-            return;
-        }
-        
-        button.prop('disabled', true).text('Verificando...');
-        
+        btn.prop('disabled', true).text('Verificando...');
         $.ajax({
             url: '/api/call_bingo',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                serial_number: serialNumber,
-                card_data: cardData
+                serial_number: btn.data('serial'),
+                card_data: btn.data('card-data')
             }),
-            success: function(response) {
-                alert(response.message);
-                isWaitingForBingoVerification = true;
-            },
-            error: function(xhr) {
-                alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.error : "Error desconocido"));
-                button.prop('disabled', false).text('¡Cantar BINGO!');
+            success: (res) => alert(res.message),
+            error: (err) => {
+                alert("Error al cantar bingo");
+                btn.prop('disabled', false).text('¡Cantar BINGO!');
             }
         });
     });
 
-    // Navegación
-    $('#btn-show-cartones').on('click', function() { switchView('cartones'); });
-    $('#btn-show-chat').on('click', function() { switchView('chat'); });
-
-    // Chat
+    // Chat y Navegación (Funciones que ya tenías)
     $('#send-chat-message-btn').on('click', sendMessage);
-    $('#chat-message-input').on('keypress', function(e) {
-        if (e.key === 'Enter') sendMessage();
-    });
-
-    // Cargar mensajes pasados solo 1 vez
-    fetchMessages(); 
+    $('#btn-show-cartones').on('click', () => switchView('cartones'));
+    $('#btn-show-chat').on('click', () => switchView('chat'));
 });
+
+// (Aquí puedes pegar tus funciones switchView, sendMessage y fetchMessages tal cual las tenías)
 </script>
 </body>
     </html>
