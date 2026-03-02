@@ -30,7 +30,7 @@ db_name = 'fraser$govalue'
 
 # --- configuraciÃ³n de SQLAlchemy ---
 app = Flask(__name__)
-DATABASE_URI = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+DATABASE_URI = f"postgresql://postgres:carlasebas1324@db.qotgthktfcqfdzgfifzc.supabase.co:5432/postgres"
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'f1c5d9a8e0b2c3d4e5f6a762hey7b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8'
