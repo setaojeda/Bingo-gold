@@ -1,0 +1,145 @@
+/* Importa la fuente de Google Fonts que ya tenías */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap');
+
+/* Estilos generales para el body */
+body {
+    font-family: 'Roboto Condensed', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Contenedor principal para centrar el contenido */
+.container {
+    width: 100%;
+    max-width: 800px; /* Limita el ancho para que no se vea demasiado grande en pantallas amplias */
+    text-align: center;
+}
+
+/* Estilos para la tarjeta */
+.card {
+    background: #fff;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    padding: 25px;
+    animation: fadeIn 1s ease-in-out;
+}
+
+/* Estilos para los títulos y texto */
+.display-4 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #28a745;
+    margin-bottom: 20px;
+    animation: bounceIn 1s ease-in-out;
+}
+
+.lead {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+    margin: 30px 0;
+}
+
+/* Estilos para la sección de detalles */
+.alert {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.alert h4 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.list-unstyled li {
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+/* Estilos para el botón de WhatsApp */
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+    font-weight: 700;
+    padding: 15px 30px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    margin-bottom: 17px;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-3px);
+}
+
+.fab {
+    margin-right: 3px;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounceIn {
+    from,
+    20%,
+    40%,
+    60%,
+    80%,
+    to {
+        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    0% {
+        opacity: 0;
+        transform: scale3d(0.3, 0.3, 0.3);
+    }
+    20% {
+        transform: scale3d(1.1, 1.1, 1.1);
+    }
+    40% {
+        transform: scale3d(0.9, 0.9, 0.9);
+    }
+    60% {
+        opacity: 1;
+        transform: scale3d(1.03, 1.03, 1.03);
+    }
+    80% {
+        transform: scale3d(0.97, 0.97, 0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale3d(1, 1, 1);
+    }
+}
