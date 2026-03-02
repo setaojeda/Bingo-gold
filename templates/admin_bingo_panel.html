@@ -268,9 +268,13 @@
             </div>
         </main>
     </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- CONEXIÓN WEBSOCKET ---
+    const socket = io(); // Conecta al servidor de forma pasiva
+
     const callBtn = document.getElementById('call-number-btn');
     const resetBtn = document.getElementById('reset-game-btn');
     const statusMsg = document.getElementById('status-message');
@@ -283,7 +287,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const lastCalledNumberEl = document.getElementById('last-called-number');
 
     let countdownInterval = null;
-    let statusPollingInterval = null;
+
+    // Escuchar las actualizaciones globales del juego que envía el backend
+    socket.on('estado_bingo_actualizado', function(data) {
+        console.log("Actualización del juego recibida:", data);
+        
+        // Si alguien canta bingo (paused) y no estamos viendo la tabla de verificación, recargar
+        if (data.status === 'paused' && !document.querySelector('.bingo-card-verification')) {
+            showStatus("¡Alguien cantó bingo! Recargando para verificar...", false);
+            setTimeout(() => window.location.reload(), 1500);
+            return;
+        }
+
+        // Si la partida terminó (alguien ganó o se reseteó), recargar para limpiar la vista
+        if (data.status === 'finished') {
+            window.location.reload();
+            return;
+        }
+
+        renderGameState(data);
+    });
 
     // Función para mostrar mensajes de estado
     function showStatus(message, isError = false) {
@@ -293,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { statusMsg.style.display = 'none'; }, 4000);
     }
 
-    // Función para "Cantar un número"
+    // Función para "Cantar un número" (Envía la orden, pero no actualiza la UI directamente)
     async function callNumber() {
         callBtn.disabled = true;
         callBtn.textContent = 'Cantando...';
@@ -305,10 +328,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 throw new Error(data.error || 'Error desconocido');
             }
-
-            showStatus(data.message);
-            // El polling se encargará de actualizar la UI
-            fetchGameStatus();
+            
+            showStatus('Número sacado de la tómbola.');
+            // Ya NO llamamos a fetchGameStatus() aquí.
+            // El servidor emitirá el evento 'estado_bingo_actualizado' y el socket lo atrapará.
 
         } catch (error) {
             console.error('Error al cantar número:', error);
@@ -333,26 +356,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             showStatus('Partida reiniciada con éxito. Recargando...');
-            setTimeout(() => window.location.reload(), 1500);
+            // El WebSocket avisará a todos (incluyéndote) que la partida terminó/inició nueva.
 
         } catch (error) {
             console.error('Error al reiniciar partida:', error);
             showStatus(`Error: ${error.message}`, true);
-        }
-    }
-
-    // Función para obtener y renderizar el estado del juego
-    async function fetchGameStatus() {
-        try {
-            const response = await fetch('/api/get_current_bingo_status');
-            if (!response.ok) throw new Error('No se pudo conectar con el servidor.');
-
-            const data = await response.json();
-            renderGameState(data);
-
-        } catch (error) {
-            console.error("Error en el polling:", error);
-            // Podrías mostrar un error persistente si el polling falla repetidamente
         }
     }
 
@@ -367,23 +375,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar el tablero principal
         const allNumbers = document.querySelectorAll('.board-number');
         allNumbers.forEach(el => el.classList.remove('called'));
-        data.numbers_called.forEach(num => {
-            const el = document.getElementById(`num-${num}`);
-            if (el) el.classList.add('called');
-        });
+        if (data.numbers_called) {
+            data.numbers_called.forEach(num => {
+                const el = document.getElementById(`num-${num}`);
+                if (el) el.classList.add('called');
+            });
+        }
 
         // Actualizar la lista de números cantados
         const listContainer = document.getElementById('called-numbers-list');
         listContainer.innerHTML = '';
-        data.numbers_called.forEach(num => {
-            const item = document.createElement('div');
-            item.className = 'called-list-item';
-            item.textContent = num;
-            listContainer.appendChild(item);
-        });
-        document.getElementById('called-count').textContent = data.numbers_called.length;
-        document.querySelector('.board-panel h2').textContent = `Tablero Principal (${75 - data.numbers_called.length} restantes)`;
-
+        if (data.numbers_called) {
+            data.numbers_called.forEach(num => {
+                const item = document.createElement('div');
+                item.className = 'called-list-item';
+                item.textContent = num;
+                listContainer.appendChild(item);
+            });
+            document.getElementById('called-count').textContent = data.numbers_called.length;
+            document.querySelector('.board-panel h2').textContent = `Tablero Principal (${75 - data.numbers_called.length} restantes)`;
+        }
 
         // Gestionar la pantalla principal (temporizador vs. último número)
         if (data.current_calling_number) {
@@ -404,7 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (remaining <= 0) {
                     clearInterval(countdownInterval);
                     timerEl.textContent = "0.0";
-                    // En el siguiente polling, el servidor ya habrá movido el número a `numbers_called`
                 }
             }, 100);
 
@@ -412,8 +422,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // No hay temporizador activo, mostrar el último número cantado
             callingDisplay.style.display = 'none';
             lastCalledDisplay.style.display = 'block';
-            callBtn.disabled = false;
-            callBtn.textContent = 'Cantar Nuevo Número';
+            callBtn.disabled = (data.status === 'paused');
+            callBtn.textContent = (data.status === 'paused') ? 'Bingo en Verificación' : 'Cantar Nuevo Número';
 
             if (data.last_number) {
                 let letter = getBingoLetter(data.last_number);
@@ -435,12 +445,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Listeners
     callBtn.addEventListener('click', callNumber);
     resetBtn.addEventListener('click', resetGame);
-
-    // Iniciar el polling para mantener el estado actualizado
-    fetchGameStatus(); // Llamada inicial
-    statusPollingInterval = setInterval(fetchGameStatus, 2000); // Polling cada 2 segundos
 });
 </script>
 
+    
 </body>
 </html>
