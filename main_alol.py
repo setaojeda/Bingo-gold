@@ -578,7 +578,7 @@ def send_chat_message():
     message_text = data.get('message')
 
     if not message_text:
-        return jsonify({'error': 'El mensaje no puede estar vacÃ­o.'}), 400
+        return jsonify({'error': 'El mensaje no puede estar vacío.'}), 400
 
     new_message = ChatMessage(
         user_id=current_user.id,
@@ -588,13 +588,13 @@ def send_chat_message():
     db.session.add(new_message)
     db.session.commit()
 
+    # ¡AQUÍ ESTABA EL ERROR! (Antes decía 'content': content)
     socketio.emit('mensaje_recibido', {
         'username': current_user.username,
-        'content': content,
+        'content': message_text, 
         'timestamp': datetime.now().strftime('%H:%M')
     })
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
-
 # --- RUTAS DE ADMINISTRACIÃ“N ---
 
 
