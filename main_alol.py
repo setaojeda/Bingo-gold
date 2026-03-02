@@ -683,39 +683,47 @@ def admin_bingo_panel():
 @login_required
 @roles_required("admin")
 def call_bingo_number():
+    # Buscamos la partida activa
     active_game = GameSession.query.filter_by(status='active').order_by(GameSession.created_at.desc()).first()
 
     if not active_game:
         return jsonify({'error': 'No hay una partida activa.'}), 400
 
-    # ... (toda tu lógica de validación de números disponibles que ya tienes) ...
+    # Obtenemos los números que ya salieron
     numbers_called = active_game.get_numbers_called()
     called_numbers_set = set(numbers_called)
-    all_possible_numbers = set(range(1, 76))
+    all_possible_numbers = set(range(1, 76)) # Números del 1 al 75
+    
+    # Vemos cuáles quedan libres
     available_numbers = list(all_possible_numbers - called_numbers_set)
 
     if not available_numbers:
-        return jsonify({'error': '¡Juego terminado!'}), 400
+        return jsonify({'error': '¡Ya salieron todos los números!'}), 400
 
+    # Elegimos uno al azar
     new_number = random.choice(available_numbers)
+    
+    # Actualizamos la base de datos
+    numbers_called.append(new_number)
+    active_game.set_numbers_called(numbers_called)
     active_game.current_calling_number = new_number
     active_game.call_start_time = datetime.now()
+    
     db.session.commit()
 
-    # --- AQUÍ ESTÁ EL CAMBIO MÁGICO ---
-    # Avisamos a todos los jugadores al instante
+    # --- LA MAGIA DEL WEBSOCKET AQUÍ ---
+    # Emitimos a todos los clientes (jugadores) la información nueva
     socketio.emit('nuevo_numero_iniciado', {
         'new_number': new_number,
-        'call_start_time': int(active_game.call_start_time.timestamp() * 1000),
-        'all_called_numbers': numbers_called
-    })
-
-    return jsonify({
-        'message': f'Temporizador para el número {new_number} iniciado.',
-        'new_number': new_number,
+        'all_called_numbers': numbers_called,
         'call_start_time': int(active_game.call_start_time.timestamp() * 1000)
     })
 
+    return jsonify({
+        'status': 'success',
+        'new_number': new_number,
+        'numbers_called': numbers_called
+    })
 
 @app.route('/admin/bingo/reset_game', methods=['POST'])
 @login_required
