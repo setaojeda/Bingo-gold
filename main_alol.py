@@ -62,6 +62,8 @@ app.config['MAIL_DEFAULT_SENDER'] = 'anaveleci@gmail.com'
 db = SQLAlchemy(app)
 mail = Mail(app)
 
+with app.app_context():
+    db.create_all()
 
 # --- Variables de Telegram ---
 BOT_TOKEN = "8024972363:AAEsXNGfJCvW6J5UuMp2m_7CgMuYM_XWi5s" # Ejemplo
