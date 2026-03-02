@@ -568,24 +568,6 @@ def send_chat_message():
     })
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
 
-
-@app.route('/chat/get_messages')
-@login_required
-def get_chat_messages():
-
-    last_id = request.args.get('since_id', 0, type=int)
-
-    messages = ChatMessage.query.filter(ChatMessage.id > last_id)\
-                                .order_by(ChatMessage.timestamp.asc())\
-                                .limit(100)\
-                                .all()
-
-    # Convierte los mensajes a un formato JSON
-    messages_data = [msg.to_dict() for msg in messages]
-
-    return jsonify(messages_data)
-
-
 # --- RUTAS DE ADMINISTRACIÃ“N ---
 
 
@@ -754,62 +736,7 @@ def reset_bingo_game():
         print(f"Error al resetear/iniciar partida de bingo: {e}")
         return jsonify({'error': 'Error interno al iniciar nueva partida.'}), 500
 
-
-@app.route('/api/get_current_bingo_status')
-def get_current_bingo_status():
-
-    # Buscamos la Ãºltima partida, ya sea activa, pausada o reciÃ©n finalizada
-    latest_game = GameSession.query.order_by(GameSession.created_at.desc()).first()
-
-    if not latest_game:
-        return jsonify({'status': 'no_game_found'})
-
-    # Si la partida estÃ¡ finalizada
-    if latest_game.status == 'finished':
-        return jsonify({
-            'status': 'finished',
-            'game_id': latest_game.id,
-            'winner_user_id': latest_game.winner_user_id
-        })
-
-    # Si la partida estÃ¡ activa o pausada (lÃ³gica que ya tenÃ­as)
-    if latest_game.status in ['active', 'paused']:
-        numbers_called = latest_game.get_numbers_called()
-        last_number = numbers_called[-1] if numbers_called else None
-        current_calling_number = latest_game.current_calling_number
-        call_start_time_timestamp = None
-        if latest_game.call_start_time:
-            call_start_time_timestamp = int(latest_game.call_start_time.timestamp() * 1000)
-
-        # Tu lÃ³gica para manejar el temporizador de 10 segundos
-        if current_calling_number is not None and latest_game.call_start_time is not None:
-            elapsed_seconds = (datetime.now() - latest_game.call_start_time).total_seconds()
-            if elapsed_seconds >= 10:
-                if current_calling_number not in numbers_called:
-                    numbers_called.append(current_calling_number)
-                    latest_game.numbers_called = json.dumps(numbers_called)
-                    latest_game.current_calling_number = None
-                    latest_game.call_start_time = None
-                    db.session.commit()
-                last_number = current_calling_number
-                current_calling_number = None
-                call_start_time_timestamp = None
-
-        return jsonify({
-            'status': latest_game.status,
-            'numbers_called': numbers_called,
-            'last_number': last_number,
-            'current_calling_number': current_calling_number,
-            'call_start_time_timestamp': call_start_time_timestamp
-        })
-
-    # Si es una partida muy vieja o en estado 'waiting'
-    return jsonify({
-        'status': 'waiting',
-        'numbers_called': [],
-    })
-
-# --- Ã‚Â¡NUEVA RUTA Y FUNCIÃƒâ€œN PARA EL MENSAJE DE VERIFICACIÃƒâ€œN! ---
+#-- Ã‚Â¡NUEVA RUTA Y FUNCIÃƒâ€œN PARA EL MENSAJE DE VERIFICACIÃƒâ€œN! ---
 @app.route('/check-email-for-confirmation')
 @anonymous_user_required # Asegura que solo se pueda acceder si no se ha iniciado sesiÃƒÂ³n (o se acaba de registrar)
 def check_email_for_confirmation():
