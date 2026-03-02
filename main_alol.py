@@ -253,7 +253,26 @@ def check_profile_completion():
         if profile_incomplete and not is_safe_endpoint:
             g.show_profile_modal = True
 
+def emitir_estado_bingo():
+    """Recolecta el estado de la partida activa o pausada y lo emite por WebSocket."""
+    # Buscamos la partida más reciente
+    game = GameSession.query.order_by(GameSession.created_at.desc()).first()
+    if not game:
+        return
 
+    # Construimos el mismo diccionario que tu frontend esperaba por polling
+    status_data = {
+        'status': game.status,
+        'game_id': game.id,
+        'numbers_called': game.get_numbers_called(),
+        'current_calling_number': game.current_calling_number,
+        'call_start_time_timestamp': int(game.call_start_time.timestamp() * 1000) if game.call_start_time else None,
+        'last_number': game.get_numbers_called()[-1] if game.get_numbers_called() else None,
+        'winner_user_id': game.winner_user_id
+    }
+    
+    # Emitimos a todos los clientes conectados
+    socketio.emit('estado_bingo_actualizado', status_data)
 
 @app.route('/pagina_en_desarrollo', methods=['GET', 'POST'])
 @login_required
@@ -445,7 +464,8 @@ def call_bingo():
     active_game.current_calling_number = None
     active_game.call_start_time = None
 
-    db.session.commit()
+    db.session.commit() 
+    emitir_estado_bingo()
 
     card_number = card_data.get('N', [])[2] # Extraer el C-XX
     message_to_admin = f"Ã‚Â¡BINGO CANTADO!\n\nSerial: {serial_number}\nNÃƒÂºmero de CartÃƒÂ³n: {card_number}\n\nEl juego estÃƒÂ¡ en pausa. Por favor, verifica en el panel de administraciÃƒÂ³n."
@@ -488,7 +508,7 @@ def confirm_bingo():
     paused_game.pending_bingo_card_data = None
 
     db.session.commit()
-
+    emitir_estado_bingo()
     flash(f"Â¡Bingo confirmado para el usuario {winning_serial_obj.user.username}!", "success")
     return redirect(url_for('admin_bingo_panel'))
 
@@ -501,7 +521,8 @@ def reject_bingo():
         paused_game.status = 'active'
         paused_game.pending_bingo_serial = None
         paused_game.pending_bingo_card_data = None
-        db.session.commit()
+        db.session.commit() 
+        emitir_estado_bingo()
     return redirect(url_for('admin_bingo_panel'))
 
 
@@ -696,16 +717,8 @@ def call_bingo_number():
     active_game.current_calling_number = new_number
     active_game.call_start_time = datetime.now()
     
-    db.session.commit()
-
-    # --- LA MAGIA DEL WEBSOCKET AQUÍ ---
-    # Emitimos a todos los clientes (jugadores) la información nueva
-    socketio.emit('nuevo_numero_iniciado', {
-        'new_number': new_number,
-        'all_called_numbers': numbers_called,
-        'call_start_time': int(active_game.call_start_time.timestamp() * 1000)
-    })
-
+    db.session.commit() 
+    emitir_estado_bingo()
     return jsonify({
         'status': 'success',
         'new_number': new_number,
@@ -729,7 +742,7 @@ def reset_bingo_game():
         new_game = GameSession(status='active', numbers_called=json.dumps([]))
         db.session.add(new_game)
         db.session.commit()
-
+        emitir_estado_bingo()
         return jsonify({'message': f'Nueva partida de bingo iniciada con ID: {new_game.id}.'}), 200
     except Exception as e:
         db.session.rollback()
