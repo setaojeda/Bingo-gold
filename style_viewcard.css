@@ -1,0 +1,392 @@
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding-bottom: 70px;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header { text-align: center; margin-bottom: 3px; background-color: #ffffff; padding: 2px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center; /* Centra los elementos horizontalmente */
+            padding: 20px 12px 20px 12px;
+        }
+
+        .allnumber {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        .cards-section, .game-section {
+            background-color: #ffffff;
+            padding: 7px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1; min-width: 255px;
+            justify-content: center;
+        }
+        .card-container { margin-bottom: 17px; padding: 9px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fefefe; }
+        .card-container h4 { margin-top: 0; color: #555; }
+        .bingo-card {
+            width: 232x; height: 232px; border-collapse: collapse; margin: 10px auto; border-radius: 10px;
+        }
+        .bingo-card th, .bingo-card td {
+            border: 1px solid #ccc; text-align: center; font-size: 1.2em; width: 50px; height: 50px; padding: 0;
+        }
+        .bingo-card th { background-color: #007bff; color: white; }
+        .bingo-card td { background-color: #f0f0f0; transition: background-color 0.3s ease; }
+        .bingo-card td.marcado { background-color: #ffeb3b !important; color: #333; font-weight: bold; border: 1px solid #fbc02d; }
+
+        .game-display {
+            text-align: center; padding: 15px; border: 1px solid #d0e0d0; border-radius: 8px; background-color: #e9f5e9;
+        }
+        #last-called-number {
+            display: block; font-size: 3em; font-weight: bold; color: #007bff;
+            margin-top: 4px; padding: 4px; border: 2px solid #333; background-color: #fff;
+            border-radius: 8px; width: 120px; height: 50px; margin: 10px auto;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .current-number {
+            border-color: #dc3545 !important; color: #dc3545 !important;
+        }
+        .no-cards-message, #no-game-message { color: #dc3545; font-weight: bold; }
+
+        .message {
+            margin-bottom: 10px;
+            color: #28a745;
+            font-weight: bold;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        #serial-display {
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #e74c3c;
+            background-color: #fdedec;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 1px dashed #e74c3c;
+        }
+
+        p {
+            margin-top: 30px;
+            font-size: 1.1em;
+            color: #666;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 25px;
+            background-color: #5cb85c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: bold;
+        }
+
+        #saveCardBtn {
+            /* QUITAMOS el margin-top de 20px que tenÃ­a antes */
+            /* y lo establecemos en 5px para que quede justo debajo del cartÃ³n */
+            margin-top: 12px; /* Â¡AquÃ­ estÃ¡ la clave! */
+            padding: 12px 30px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #saveCardBtn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Estilos para el tablero de bingo cantado */
+        .bingo-board-section {
+            background-color: #ffffff;
+            padding: 2px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .bingo-board-section h2 {
+            color: #343a40;
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+        .bingo-board-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 70px; /* Asegura un tamaÃ±o mÃ­nimo */
+            font-size: 3rem; /* TamaÃ±o grande para el nÃºmero actual */
+            font-weight: bold;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            color: #dc3545; /* Rojo para el temporizador/nÃºmero actual */
+            animation: pulse-red 1s infinite alternate;
+        }
+        .bingo-board-display.revealed {
+            color: #28a745; /* Verde para el nÃºmero ya revelado */
+            animation: pulse-green 1.5s infinite alternate;
+        }
+        .bingo-board-display.hidden {
+            color: #6c757d; /* Gris para el estado inicial "Esperando" */
+            font-size: 3rem;
+            animation: none;
+        }
+
+        .called-numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+            gap: 8px;
+            margin-top: 3px;
+            padding: 9px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #fdfdfd;
+        }
+        .called-number-item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 25px;
+            height: 25px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            font-weight: bold;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        .called-number-item.highlighted {
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+        }
+
+
+        /* Estilos para los números CANTADOS (Marcados) */
+.bingo-card td.marked {
+    background-color: #ffeb3b; /* Amarillo vibrante para los números marcados */
+    color: #333; /* Texto oscuro para contraste */
+    font-weight: bold;
+    /* Puedes añadir más estilos, por ejemplo, un borde o una sombra */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+}
+
+
+#notification-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px;
+    text-align: center;
+    color: white;
+    font-size: 1.1em;
+    z-index: 1000;
+    transition: top 0.5s ease-in-out;
+}
+
+#notification-banner.hidden {
+    top: -100px; /* Oculta el banner fuera de la vista */
+}
+
+#notification-banner.success {
+    background-color: #28a745; /* Verde */
+}
+
+#notification-banner.error {
+    background-color: #dc3545; /* Rojo */
+}
+
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 53px;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1000;
+    }
+    .nav-button {
+        flex-grow: 1;
+        height: 100%;
+        background-color: transparent;
+        border: none;
+        font-size: 16px;
+        color: #6c757d;
+        cursor: pointer;
+        transition: color 0.2s, border-bottom 0.2s;
+        border-bottom: 3px solid transparent;
+        font-family: 'Roboto Condensed', sans-serif;
+    }
+    .nav-button.active {
+        color: #007bff;
+        border-bottom: 3px solid #007bff;
+    }
+    .content-view {
+        display: none;
+    }
+    .content-view.active {
+        display: block;
+    }
+
+    /* ================================================================ */
+    /* --- NUEVOS ESTILOS PARA EL CHAT ESTILO TELEGRAM --- */
+    /* ================================================================ */
+
+    #view-chat {
+        /* Este contenedor ya no necesita estilos de layout directo */
+    }
+
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 60px);
+        background-color: #e5eff5;
+        padding: 0;
+    }
+
+    .chat-message {
+        padding: 8px 14px;
+        border-radius: 20px;
+        margin-bottom: 8px;
+        max-width: 80%;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        word-wrap: break-word;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-message.received {
+        background-color: #ffffff;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+
+    .chat-message.sent {
+        background-color: #e1ffc7;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .chat-message .username {
+        font-weight: bold;
+        color: #0d82d9;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .chat-message .message-text {
+        font-size: 16px;
+    }
+
+/* ================================================================ */
+/* --- ESTILOS PARA EL INPUT FIJO CON JAVASCRIPT --- */
+/* ================================================================ */
+
+/* 1. Clase de utilidad para ocultar/mostrar elementos */
+.hidden {
+    display: none !important; /* !important para asegurar que siempre se oculte */
+}
+
+/* 2. Estilos para el área de input cuando está fuera del flujo normal */
+.chat-input-area {
+    position: fixed;         /* Lo fijamos en la pantalla */
+    bottom: 53px;            /* Justo encima de la barra de nav que mide 60px */
+    left: 0;
+    width: 100%;
+    z-index: 999;            /* Por debajo del nav-bar (que tiene 1000) pero encima de todo lo demás */
+
+    /* Mantenemos los estilos de diseño que ya teníamos */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #f0f4f7; /* Un color de fondo sólido es importante ahora */
+    border-top: 1px solid #dbe2e8;
+    box-sizing: border-box; /* Para que el padding no afecte el width: 100% */
+}
+
+/* 3. Ajuste para la caja de mensajes */
+/* Cuando el input esté visible, le añadiremos un "espacio de respeto" al final */
+.chat-box {
+    /* --- ASEGÚRATE DE QUE ESTAS DOS LÍNEAS ESTÉN PRESENTES --- */
+    display: flex;
+    flex-direction: column-reverse;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px 10px;
+    border: none;
+    transition: padding-bottom 0.2s ease-in-out;
+}
+
+
+.chat-box.with-fixed-input {
+    /* Unos 70px deberían ser suficientes para compensar la altura del input */
+    padding-bottom: 95px;
+}
+
+    #chat-message-input {
+        flex-grow: 1;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 22px;
+        font-size: 16px;
+        margin-right: 10px;
+        font-family: 'Roboto Condensed', sans-serif;
+    }
+
+    #chat-message-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 136, 204, 0.5);
+    }
+
+    #send-chat-message-btn {
+        background-color: #0088cc;
+        border: none;
+        color: white;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+        font-size: 0;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24px" height="24px"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>');
+        background-repeat: no-repeat;
+        background-position: center 55%;
+        background-size: 24px;
+    }
+
+    #send-chat-message-btn:hover {
+        background-color: #007ab8;
+    }
