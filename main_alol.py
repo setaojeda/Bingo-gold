@@ -192,9 +192,31 @@ user_datastore = SQLAlchemySessionUserDatastore(db.session, User, Role)
 security = Security(app, user_datastore)
 
 with app.app_context():
-    print("Creando tablas en Supabase...")
+    # 1. Crea las tablas si no existen
     db.create_all()
-    print("¡Tablas creadas con éxito!")
+    
+    # 2. Crea el rol 'admin' si no existe
+    admin_role = user_datastore.find_or_create_role(
+        name='admin', 
+        description='Administrador con todos los permisos'
+    )
+    
+    # 3. Crea tu usuario Administrador
+    # !!! CAMBIA ESTOS DATOS POR LOS QUE TÚ QUIERAS !!!
+    email_admin = "demiurgo@bingo.com" 
+    password_admin = "demiurgo132435"
+    
+    if not user_datastore.find_user(email=email_admin):
+        user_datastore.create_user(
+            email=email_admin,
+            password=hash_password(password_admin),
+            confirmed_at=datetime.utcnow(), # Lo marcamos como confirmado de una vez
+            roles=[admin_role]
+        )
+        db.session.commit()
+        print(f"✅ ¡ÉXITO! Usuario admin creado: {email_admin}")
+    else:
+        print("ℹ️ El usuario administrador ya existe en la base de datos.")
 # --- Funciones de Bingo ---
 
 def generate_bingo_card():
