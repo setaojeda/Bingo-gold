@@ -689,7 +689,7 @@ def admin_bingo_panel():
 
 @app.route('/admin/bingo/call_number', methods=['POST'])
 @login_required
-@roles_required("admin")
+#@roles_required("admin")
 def call_bingo_number():
     # Buscamos la partida activa
     active_game = GameSession.query.filter_by(status='active').order_by(GameSession.created_at.desc()).first()
