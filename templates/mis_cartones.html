@@ -300,7 +300,55 @@ $(document).ready(function() {
             }
         });
     });
+  // =================================================================
+// 5. FUNCIONES DE CHAT Y NAVEGACIÓN (Faltaban estas)
+// =================================================================
 
+function switchView(viewToShow) {
+    const chatInputArea = $('.chat-input-area');
+    const chatBox = $('#chat-box');
+
+    // Ocultar todo
+    $('.content-view').removeClass('active');
+    $('.nav-button').removeClass('active');
+
+    if (viewToShow === 'cartones') {
+        $('#view-cartones').addClass('active');
+        $('#btn-show-cartones').addClass('active');
+        chatInputArea.addClass('hidden');
+        chatBox.removeClass('with-fixed-input');
+    } else if (viewToShow === 'chat') {
+        $('#view-chat').addClass('active');
+        $('#btn-show-chat').addClass('active');
+        chatInputArea.removeClass('hidden');
+        chatBox.addClass('with-fixed-input');
+        
+        // Hacer scroll automático hacia abajo al abrir el chat
+        chatBox.scrollTop(chatBox[0].scrollHeight);
+    }
+}
+
+async function sendMessage() {
+    const messageInput = $('#chat-message-input');
+    const messageText = messageInput.val().trim();
+    
+    if (messageText === '') return; // No enviar si está vacío
+    
+    try {
+        await $.ajax({
+            url: '/chat/send_message',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ message: messageText })
+        });
+        
+        // ¡ESTO ES LO QUE BORRA EL TEXTO DEL INPUT AL ENVIAR!
+        messageInput.val('');
+        
+    } catch (error) {
+        console.error('Error al enviar el mensaje:', error);
+    }
+}
     // Chat y Navegación (Funciones que ya tenías)
     $('#send-chat-message-btn').on('click', sendMessage);
     $('#btn-show-cartones').on('click', () => switchView('cartones'));
