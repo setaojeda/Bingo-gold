@@ -62,9 +62,6 @@ app.config['MAIL_DEFAULT_SENDER'] = 'anaveleci@gmail.com'
 db = SQLAlchemy(app)
 mail = Mail(app)
 
-with app.app_context():
-    db.create_all()
-
 # --- Variables de Telegram ---
 BOT_TOKEN = "8024972363:AAEsXNGfJCvW6J5UuMp2m_7CgMuYM_XWi5s" # Ejemplo
 CHAT_ID = "7901772009"
@@ -194,7 +191,10 @@ class AvailableCard(db.Model):
 user_datastore = SQLAlchemySessionUserDatastore(db.session, User, Role)
 security = Security(app, user_datastore)
 
-
+with app.app_context():
+    print("Creando tablas en Supabase...")
+    db.create_all()
+    print("¡Tablas creadas con éxito!")
 # --- Funciones de Bingo ---
 
 def generate_bingo_card():
