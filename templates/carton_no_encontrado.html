@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cartón No Encontrado</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 500px; margin: 50px auto; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #dc3545; margin-bottom: 20px; }
+        p { margin-bottom: 20px; color: #6c757d; }
+        a { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        a:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>¡Serial No Encontrado!</h1>
+        <p>El serial que introdujiste: <strong>{{ serial_number }}</strong> no se pudo encontrar en nuestra base de datos.</p>
+        <p>Por favor, verifica que lo hayas escrito correctamente o intenta comprar un nuevo cartón.</p>
+        <a href="{{ url_for('buscar_carton') }}">Intentar Buscar de Nuevo</a>
+    </div>
+</body>
+</html>

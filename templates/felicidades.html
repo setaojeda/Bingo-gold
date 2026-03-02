@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sian fusi home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='felicidades.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<div class="container mt-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h1 class="display-4 text-success">🎉 ¡FELICIDADES! 🎉</h1>
+                    <p class="lead mt-3">
+                        Has ganado la partida de Bingo a cartón lleno.
+                    </p>
+                    <hr>
+                    <div class="alert alert-info">
+                        <h4>Detalles de tu Victoria:</h4>
+                        <ul class="list-unstyled">
+                            <li><strong>ID de la Partida:</strong> {{ game.id }}</li>
+                            <li><strong>Número de tu Cartón:</strong> {{ card_number }}</li>
+                            <li><strong>Serial de tu Cartón:</strong> {{ serial }}</li>
+                        </ul>
+                    </div>
+                    <p class="mt-4">
+                        Para reclamar tu premio, por favor haz clic en el siguiente botón. Serás redirigido a WhatsApp para enviar un mensaje de confirmación al administrador.
+                    </p>
+                    <a href="{{ whatsapp_link }}" target="_blank" class="btn btn-success btn-lg mt-3">
+                        <i class="fab fa-whatsapp"></i> Reclamar Premio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://kit.fontawesome.com/tu-codigo-de-kit.js" crossorigin="anonymous"></script>
+
+</body>
+</html>

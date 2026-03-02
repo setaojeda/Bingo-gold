@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi PÃ¡gina Sencilla</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_viewcard.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    </head>
+<body>
+    <header>
+    <h1>¡Felicidades! Tu Cartón de Bingo</h1>
+    </header>
+
+
+<div class="main-content">
+    <section class="cards-section">
+        <h3 class="message">Tu pago ha sido registrado y el cartón ha sido generado, ojo,se verificará el pago, una ves sea correcto sera asignado como el dueño del "Carton:Numero"</h3>
+
+<div class="cards-container">
+{% if cards %}
+    {% for card in cards %}
+    <div id="card-container">
+        <table class="bingo-card">
+            <thead>
+                <tr>
+                    <th>B</th>
+                    <th>I</th>
+                    <th>N</th>
+                    <th>G</th>
+                    <th>O</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(5) %}
+                <tr>
+                    <td>{{ card.B[i] }}</td>
+                    <td>{{ card.I[i] }}</td>
+                    <td>{{ card.N[i] }}</td>
+                    <td>{{ card.G[i] }}</td>
+                    <td>{{ card.O[i] }}</td>
+                </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endif %}
+    </div>
+</div>
+    <!-- EL BOTÓN SE COLOCA INMEDIATAMENTE DESPUÉS DEL DIV 'card-container' -->
+    <button id="saveCardBtn">Guardar Cartón</button>
+
+
+    <div id="serial-display">
+        Número de Serie: {{ serial }}
+    </div>
+
+    <p style="margin-top: 30px;">Guarda este cartón y su número de serie. ¡Mucha suerte!</p>
+    <a href="/">Volver al inicio</a>
+</section>
+</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        document.getElementById('saveCardBtn').addEventListener('click', function() {
+            const cardContainer = document.getElementById('card-container');
+
+            html2canvas(cardContainer, {
+                scale: 2
+            }).then(function(canvas) {
+                const link = document.createElement('a');
+                link.download = 'carton_bingo.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    </script>
+</body>
+</html>

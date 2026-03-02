@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrarse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Variables CSS para colores (igual que en login.html) */
+        :root {
+            --primary-color: #007bff; /* Azul vibrante */
+            --primary-dark: #0056b3; /* Azul más oscuro para hover */
+            --text-color: #333;       /* Gris oscuro para texto */
+            --light-gray: #f8f9fa;    /* Gris muy claro para fondo */
+            --border-color: #ced4da; /* Gris claro para bordes */
+            --card-bg: #ffffff;       /* Fondo blanco para la tarjeta */
+            --shadow-color: rgba(0, 0, 0, 0.1); /* Sombra suave */
+            --error-color: #dc3545;   /* Rojo para errores */
+            --success-color: #28a745; /* Verde para éxito */
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(149deg,rgba(0, 0, 36, 1) 0%, rgba(8, 8, 69, 1) 35%, rgba(12, 46, 51, 1) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .register-container { /* Cambiado de .login-container a .register-container */
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px var(--shadow-color); /* Sombra más pronunciada */
+            text-align: center;
+            max-width: 400px;
+            width: 70%;
+         /* animation: fadeIn 0.8s ease-out; Animación de entrada */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-weight: 700;
+            font-size: 2.2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .form-control {
+            width: calc(100% - 24px); /* Ancho completo menos padding */
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        .errors {
+            color: var(--error-color);
+            font-size: 0.85em;
+            margin-top: 5px;
+            padding-left: 0;
+            list-style-type: none; /* Elimina los puntos de la lista */
+        }
+
+        .btn-submit {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+        .btn-submit:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px); /* Efecto de "levantar" */
+        }
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .links {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+        .links a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .links a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1>Registrarse</h1>
+
+        <img src="{{ url_for('static', filename='perfil-del-usuario.png') }}" width="50" height="50" alt="Descripción de la imagen">
+
+        <form action="{{ url_for('security.register') }}" method="POST">
+            {{ register_user_form.hidden_tag() }}
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                {{ register_user_form.email(class="form-control", placeholder="tu@email.com") }}
+                {% if register_user_form.email.errors %}
+                    <ul class="errors">
+                        {% for error in register_user_form.email.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                {{ register_user_form.password(class="form-control", placeholder="********") }}
+                {% if register_user_form.password.errors %}
+                    <ul class="errors">
+                        {% for error in register_user_form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="password_confirm">Confirmar Contraseña</label>
+                {{ register_user_form.password_confirm(class="form-control", placeholder="********") }}
+                {% if register_user_form.password_confirm.errors %}
+                    <ul class="errors">
+                        {% for error in register_user_form.password_confirm.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-submit">Registrarse</button>
+
+            <p class="links">
+                <a href="{{ url_for('security.login') }}">¿Ya tienes cuenta? Inicia Sesión</a>
+            </p>
+        </form>
+    </div>
+</body>
+</html>

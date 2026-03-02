@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error del Servidor</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 500px; margin: 50px auto; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #dc3545; margin-bottom: 20px; }
+        p { margin-bottom: 20px; color: #6c757d; }
+        a { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        a:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>¡Error Interno del Servidor! (Error 500)</h1>
+        <p>Algo salió mal en nuestro lado y no pudimos procesar tu solicitud.</p>
+        <p>Estamos trabajando para solucionarlo lo antes posible. Por favor, intenta más tarde.</p>
+        <a href="{{ url_for('index') }}">Volver a la Página Principal</a>
+    </div>
+</body>
+</html>

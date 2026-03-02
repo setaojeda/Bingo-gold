@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Página Sencilla</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_car.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+
+        /* Estilo para el contenedor principal de enlaces/botones administrativos */
+        .admin-links {
+            max-width: 225px;
+            margin: 20px auto;
+        }
+
+        /* Estilo para los enlaces (<a>) dentro de .admin-links */
+        .admin-links a {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            background-color: #f9f9f9;
+            text-align: center;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        /* Nuevo estilo específico para los spans y botones que actúan como botones */
+        .admin-button-span, #reset-game-button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            background-color: #e0e0e0; /* Un gris ligeramente diferente para los spans */
+            text-align: center;
+            box-sizing: border-box;
+            cursor: pointer;
+            width: 100%; /* Asegurar que ocupe todo el ancho del contenedor */
+            font-size: 1em; /* Ajustar fuente si es necesario */
+            font-family: inherit; /* Heredar la fuente del body */
+        }
+        #reset-game-button {
+            background-color: #dc3545; /* Rojo para el botón de reinicio */
+            color: white;
+            border: none;
+        }
+
+        .admin-links a:hover, .admin-button-span:hover {
+            background-color: #d0d0d0;
+        }
+        #reset-game-button:hover {
+            background-color: #c82333;
+        }
+
+        /* Contenedor para la lista de disponibilidad (para centrar y agrupar) */
+        .disponibilidad-container {
+            margin-top: 10px;
+            max-width: 225px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #listaDisponibilidad {
+            display: none; /* Oculta la lista por defecto */
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px; /* Bordes redondeados */
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            max-width: 225px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        /* ESTOS SON LOS ESTILOS PARA LOS NÚMEROS DE LA LISTA, ASEGURAR QUE NO SEAN AFECTADOS */
+        #listaDisponibilidad .disponible { color: green; }
+        #listaDisponibilidad .ocupado { color: red; text-decoration: line-through; }
+
+        /* Estilos para mensajes de éxito/error */
+        .message {
+            margin: 10px auto;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 250px;
+            display: none; /* Oculto por defecto */
+        }
+        .success { display: block; background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .error { display: block; background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+        /* Estilos para el formulario de eliminación de un solo número */
+        .delete-single-number {
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f0f0f0;
+            max-width: 210px;
+            text-align: center;
+        }
+        .delete-single-number input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .delete-single-number button {
+            padding: 8px 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-single-number button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="navbar-logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Nav">
+        </div>
+        <div class="navbar-image">
+            <img src="{{ url_for('static', filename='imagen_central.png') }}" alt="Imagen Central">
+        </div>
+    </nav>
+    <h1>Solo administración </h1>
+
+    <div class="admin-links">
+        <span id="resetBtn" class="admin-button-span" onclick="resetearDisponibilidad()">Resetear Disp 🔄</span>
+
+        <button id="reset-game-button">Reiniciar Partida de Bingo</button>
+
+        <a href="/pagina_en_desarrollo">Asignar Cartón ☁️</a>
+
+        <a href="{{ url_for('admin_bingo_panel') }}">Cantar Número 📋</a>
+
+        <div class="disponibilidad-container">
+            <span id="mostrarListaBtn" class="admin-button-span" onclick="toggleListaDisponibilidad()">Cartones Disp/Ocu 📋</span>
+            <div id="listaDisponibilidad"></div>
+        </div>
+
+        <a href="https://t.me/TraderUnitya">Bot Telegram 🛸</a>
+    </div>
+
+    <div class="delete-single-number">
+        <label for="numero_a_eliminar">Eliminar un Cartón Específico:</label><br>
+        <input type="number" id="numero_a_eliminar" min="1" max="100" placeholder="Ej: 42">
+        <button onclick="eliminarNumeroEspecifico()">Eliminar</button>
+    </div>
+
+    <div id="messageArea" class="message"></div>
+
+</body>
+<script>
+    // --- FUNCIONES DE GESTIÓN DE CARTONES ---
+
+    async function resetearDisponibilidad() {
+        if (!confirm('¿Estás seguro de que quieres resetear la disponibilidad de TODOS los cartones? Esta acción es irreversible.')) {
+            return;
+        }
+        showStatusMessage('Reseteando...', false, true); // Mostrar mensaje sin clase y persistente
+        try {
+            const response = await fetch('/api/reset_disponibilidad', { method: 'POST' });
+            const data = await response.json();
+            if (response.ok) {
+                showStatusMessage(data.message);
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            showStatusMessage(`Error: ${error.message}`, true);
+        }
+    }
+
+    async function toggleListaDisponibilidad() {
+        const listaDiv = document.getElementById('listaDisponibilidad');
+        document.getElementById('messageArea').style.display = 'none';
+
+        if (listaDiv.style.display === 'none') {
+            await cargarListaDisponibilidad();
+            listaDiv.style.display = 'block';
+        } else {
+            listaDiv.style.display = 'none';
+        }
+    }
+
+    async function cargarListaDisponibilidad() {
+        const listaDiv = document.getElementById('listaDisponibilidad');
+        listaDiv.innerHTML = 'Cargando disponibilidad...';
+        try {
+            const response = await fetch('/api/numeros_ocupados');
+            const data = await response.json();
+            const numerosOcupados = new Set(data.ocupados);
+            let htmlContent = '<h3>Disponibilidad (1-100):</h3><p>';
+            for (let i = 1; i <= 100; i++) {
+                htmlContent += `<span class="${numerosOcupados.has(i) ? 'ocupado' : 'disponible'}">${i}</span> `;
+            }
+            htmlContent += '</p>';
+            listaDiv.innerHTML = htmlContent;
+        } catch (error) {
+            listaDiv.innerHTML = 'Error al cargar la disponibilidad.';
+        }
+    }
+
+    async function eliminarNumeroEspecifico() {
+        const numeroInput = document.getElementById('numero_a_eliminar');
+        const numero = numeroInput.value;
+        if (!numero || isNaN(numero) || numero < 1 || numero > 100) {
+            showStatusMessage('Por favor, introduce un número de cartón válido (1-100).', true);
+            return;
+        }
+        if (!confirm(`¿Estás seguro de que quieres eliminar el cartón ${numero} de la lista de ocupados?`)) {
+            return;
+        }
+        showStatusMessage(`Eliminando cartón ${numero}...`, false, true);
+        try {
+            const response = await fetch(`/api/delete_disponibilidad/${numero}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (response.ok) {
+                showStatusMessage(data.message);
+                numeroInput.value = '';
+                if (document.getElementById('listaDisponibilidad').style.display !== 'none') {
+                    await cargarListaDisponibilidad();
+                }
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            showStatusMessage(`Error: ${error.message}`, true);
+        }
+    }
+
+    // --- FUNCIONES DE GESTIÓN DEL BINGO (INCLUYENDO LA NUEVA FUNCIÓN) ---
+
+    /**
+     * Función para reiniciar la partida de Bingo.
+     * Copiada del primer script y adaptada.
+     */
+    async function resetGame() {
+        if (!confirm('¿Estás seguro de que quieres reiniciar la partida? Esto finalizará la actual y creará una nueva.')) {
+            return;
+        }
+        try {
+            const response = await fetch('/admin/bingo/reset_game', { method: 'POST' });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al reiniciar');
+            }
+            showStatusMessage('Partida reiniciada con éxito. Recargando...');
+            setTimeout(() => window.location.reload(), 1500); // Recarga la página
+        } catch (error) {
+            console.error('Error al reiniciar partida:', error);
+            showStatusMessage(`Error: ${error.message}`, true);
+        }
+    }
+
+
+    // --- FUNCIÓN DE UTILIDAD PARA MOSTRAR MENSAJES ---
+
+    /**
+     * Muestra un mensaje en el área de notificaciones.
+     * @param {string} message - El texto a mostrar.
+     * @param {boolean} isError - Si es un mensaje de error.
+     * @param {boolean} persistent - Si el mensaje debe desaparecer automáticamente.
+     */
+    function showStatusMessage(message, isError = false, persistent = false) {
+        const messageArea = document.getElementById('messageArea');
+        messageArea.textContent = message;
+        messageArea.className = 'message'; // Limpia clases anteriores
+        if (isError) {
+            messageArea.classList.add('error');
+        } else {
+            messageArea.classList.add('success');
+        }
+
+        if (!persistent) {
+            setTimeout(() => {
+                messageArea.style.display = 'none';
+                messageArea.className = 'message';
+            }, 4000);
+        }
+    }
+
+
+    // --- EVENT LISTENERS ---
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const resetButton = document.getElementById('reset-game-button');
+        if (resetButton) {
+            // Se asigna la nueva función 'resetGame' al botón.
+            resetButton.addEventListener('click', resetGame);
+        }
+    });
+</script>
+</html>

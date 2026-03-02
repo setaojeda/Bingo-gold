@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Admin - Bingo</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --called-bg: #28a745;
+            --called-text: #fff;
+            --calling-bg: #ffc107;
+            --calling-text: #333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .control-panel, .board-panel {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1, h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .main-display {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+        }
+        .main-display .label {
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        .main-display .number {
+            font-size: 5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin: 10px 0;
+        }
+        #current-calling-display .number {
+             color: var(--calling-text);
+        }
+        #last-called-display .number {
+             color: var(--primary-color);
+        }
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--danger-color);
+        }
+        .actions button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 10px;
+        }
+        #call-number-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #call-number-btn:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+        #call-number-btn:disabled {
+            background-color: #a0c7ff;
+            cursor: not-allowed;
+        }
+        #reset-game-btn {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        #reset-game-btn:hover {
+            background-color: var(--danger-hover);
+        }
+        #status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none; /* Oculto por defecto */
+        }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        .bingo-board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .board-number {
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 50%;
+            background-color: var(--bg-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .board-number.called {
+            background-color: var(--called-bg);
+            color: var(--called-text);
+        }
+        .called-list-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .called-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .called-list-item {
+            padding: 5px 10px;
+            background-color: var(--called-bg);
+            color: var(--called-text);
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .bingo-board {
+                grid-template-columns: repeat(10, 1fr);
+            }
+        }
+         @media (max-width: 576px) {
+            .bingo-board {
+                grid-template-columns: repeat(8, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <aside class="control-panel">
+            <h1>Panel de Control ⚙️</h1>
+
+            <div id="current-calling-display" class="main-display" style="display: none; background-color: var(--calling-bg);">
+                <div class="label">Cantando...</div>
+                <div id="current-calling-number" class="number">--</div>
+                <div id="timer" class="timer">10</div>
+            </div>
+
+            <div id="last-called-display" class="main-display">
+                <div class="label">Último Número</div>
+                <div id="last-called-number" class="number">
+                    {{ last_number if last_number else '--' }}
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="call-number-btn">Cantar Nuevo Número</button>
+                <button id="reset-game-btn">Reiniciar Partida</button>
+            </div>
+
+            <div id="status-message"></div>
+
+            <hr>
+
+            {% if game.status == 'paused' %}
+    <div class="alert alert-warning">
+        <h2>¡BINGO PENDIENTE DE VERIFICACIÓN!</h2>
+        <p>El juego está en pausa. El jugador con el serial <strong>{{ game.pending_bingo_serial }}</strong> ha cantado bingo.</p>
+
+        <h4>Cartón a Verificar:</h4>
+        {% if pending_card_data %}
+            <table class="bingo-card-verification">
+                <thead>
+                    <tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr>
+                </thead>
+                <tbody>
+                    {% for i in range(5) %}
+                    <tr>
+                        {% set b = pending_card_data.B[i] %}
+                        <td class="{{ 'marked' if b in numbers_called else '' }}">{{ b }}</td>
+
+                        {% set i_val = pending_card_data.I[i] %}
+                        <td class="{{ 'marked' if i_val in numbers_called else '' }}">{{ i_val }}</td>
+
+                        {% set n = pending_card_data.N[i] %}
+                        <td class="{{ 'marked' if n in numbers_called or n is string and 'C-' in n else '' }}">{{ n }}</td>
+
+                        {% set g = pending_card_data.G[i] %}
+                        <td class="{{ 'marked' if g in numbers_called else '' }}">{{ g }}</td>
+
+                        {% set o = pending_card_data.O[i] %}
+                        <td class="{{ 'marked' if o in numbers_called else '' }}">{{ o }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <style>.bingo-card-verification td.marked { background-color: #28a745; color: white; }</style>
+        {% endif %}
+
+        <div class="verification-actions">
+            <form action="{{ url_for('confirm_bingo') }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-success">Confirmar Ganador</button>
+            </form>
+            <form action="{{ url_for('reject_bingo') }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Rechazar (Falso Bingo)</button>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<button ... {% if game.status == 'paused' %}disabled{% endif %}>Cantar Próximo Número</button>
+
+            <h2>Números Cantados (<span id="called-count">{{ numbers_called|length }}</span>)</h2>
+            <div class="called-list-container">
+                <div id="called-numbers-list" class="called-list">
+                    {% for num in numbers_called %}
+                        <div class="called-list-item">{{ num }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </aside>
+
+        <main class="board-panel">
+            <h2>Tablero Principal ({{ 75 - numbers_called|length }} restantes)</h2>
+            <div id="bingo-board" class="bingo-board">
+                {% for i in range(1, 76) %}
+                    <div id="num-{{ i }}" class="board-number {% if i in numbers_called %}called{% endif %}">
+                        {{ i }}
+                    </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const callBtn = document.getElementById('call-number-btn');
+    const resetBtn = document.getElementById('reset-game-btn');
+    const statusMsg = document.getElementById('status-message');
+
+    const callingDisplay = document.getElementById('current-calling-display');
+    const callingNumberEl = document.getElementById('current-calling-number');
+    const timerEl = document.getElementById('timer');
+
+    const lastCalledDisplay = document.getElementById('last-called-display');
+    const lastCalledNumberEl = document.getElementById('last-called-number');
+
+    let countdownInterval = null;
+    let statusPollingInterval = null;
+
+    // Función para mostrar mensajes de estado
+    function showStatus(message, isError = false) {
+        statusMsg.textContent = message;
+        statusMsg.className = isError ? 'status-error' : 'status-success';
+        statusMsg.style.display = 'block';
+        setTimeout(() => { statusMsg.style.display = 'none'; }, 4000);
+    }
+
+    // Función para "Cantar un número"
+    async function callNumber() {
+        callBtn.disabled = true;
+        callBtn.textContent = 'Cantando...';
+
+        try {
+            const response = await fetch('/admin/bingo/call_number', { method: 'POST' });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error desconocido');
+            }
+
+            showStatus(data.message);
+            // El polling se encargará de actualizar la UI
+            fetchGameStatus();
+
+        } catch (error) {
+            console.error('Error al cantar número:', error);
+            showStatus(`Error: ${error.message}`, true);
+            callBtn.disabled = false;
+            callBtn.textContent = 'Cantar Nuevo Número';
+        }
+    }
+
+    // Función para reiniciar la partida
+    async function resetGame() {
+        if (!confirm('¿Estás seguro de que quieres reiniciar la partida? Esto finalizará la actual y creará una nueva.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/bingo/reset_game', { method: 'POST' });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al reiniciar');
+            }
+
+            showStatus('Partida reiniciada con éxito. Recargando...');
+            setTimeout(() => window.location.reload(), 1500);
+
+        } catch (error) {
+            console.error('Error al reiniciar partida:', error);
+            showStatus(`Error: ${error.message}`, true);
+        }
+    }
+
+    // Función para obtener y renderizar el estado del juego
+    async function fetchGameStatus() {
+        try {
+            const response = await fetch('/api/get_current_bingo_status');
+            if (!response.ok) throw new Error('No se pudo conectar con el servidor.');
+
+            const data = await response.json();
+            renderGameState(data);
+
+        } catch (error) {
+            console.error("Error en el polling:", error);
+            // Podrías mostrar un error persistente si el polling falla repetidamente
+        }
+    }
+
+    // Función para actualizar la UI con los datos del juego
+    function renderGameState(data) {
+        // Limpiar temporizador existente
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+
+        // Actualizar el tablero principal
+        const allNumbers = document.querySelectorAll('.board-number');
+        allNumbers.forEach(el => el.classList.remove('called'));
+        data.numbers_called.forEach(num => {
+            const el = document.getElementById(`num-${num}`);
+            if (el) el.classList.add('called');
+        });
+
+        // Actualizar la lista de números cantados
+        const listContainer = document.getElementById('called-numbers-list');
+        listContainer.innerHTML = '';
+        data.numbers_called.forEach(num => {
+            const item = document.createElement('div');
+            item.className = 'called-list-item';
+            item.textContent = num;
+            listContainer.appendChild(item);
+        });
+        document.getElementById('called-count').textContent = data.numbers_called.length;
+        document.querySelector('.board-panel h2').textContent = `Tablero Principal (${75 - data.numbers_called.length} restantes)`;
+
+
+        // Gestionar la pantalla principal (temporizador vs. último número)
+        if (data.current_calling_number) {
+            // Un número está en proceso de ser cantado
+            callingDisplay.style.display = 'block';
+            lastCalledDisplay.style.display = 'none';
+            callBtn.disabled = true;
+            callBtn.textContent = 'Esperando temporizador...';
+
+            let letter = getBingoLetter(data.current_calling_number);
+            callingNumberEl.textContent = `${letter}-${data.current_calling_number}`;
+
+            // Iniciar el temporizador
+            const endTime = data.call_start_time_timestamp + 10000; // 10 segundos
+            countdownInterval = setInterval(() => {
+                const remaining = Math.max(0, endTime - Date.now());
+                timerEl.textContent = (remaining / 1000).toFixed(1);
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    timerEl.textContent = "0.0";
+                    // En el siguiente polling, el servidor ya habrá movido el número a `numbers_called`
+                }
+            }, 100);
+
+        } else {
+            // No hay temporizador activo, mostrar el último número cantado
+            callingDisplay.style.display = 'none';
+            lastCalledDisplay.style.display = 'block';
+            callBtn.disabled = false;
+            callBtn.textContent = 'Cantar Nuevo Número';
+
+            if (data.last_number) {
+                let letter = getBingoLetter(data.last_number);
+                lastCalledNumberEl.textContent = `${letter}-${data.last_number}`;
+            } else {
+                lastCalledNumberEl.textContent = '--';
+            }
+        }
+    }
+
+    function getBingoLetter(number) {
+        if (number <= 15) return 'B';
+        if (number <= 30) return 'I';
+        if (number <= 45) return 'N';
+        if (number <= 60) return 'G';
+        return 'O';
+    }
+
+    // Event Listeners
+    callBtn.addEventListener('click', callNumber);
+    resetBtn.addEventListener('click', resetGame);
+
+    // Iniciar el polling para mantener el estado actualizado
+    fetchGameStatus(); // Llamada inicial
+    statusPollingInterval = setInterval(fetchGameStatus, 2000); // Polling cada 2 segundos
+});
+</script>
+
+</body>
+</html>
