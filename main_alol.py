@@ -274,6 +274,12 @@ def emitir_estado_bingo():
     # Emitimos a todos los clientes conectados
     socketio.emit('estado_bingo_actualizado', status_data)
 
+@socketio.on('connect')
+def handle_connect():
+    # En cuanto un usuario entra o recarga, le enviamos el estado actual
+    emitir_estado_bingo() 
+
+
 @app.route('/pagina_en_desarrollo', methods=['GET', 'POST'])
 @login_required
 def pagina_en_desarrollo():
