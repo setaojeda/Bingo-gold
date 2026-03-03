@@ -92,27 +92,22 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-// =================================================================
-// 1. VARIABLES GLOBALES Y PERSISTENCIA
-// =================================================================
 let countdownInterval;
 const REVEAL_DURATION = 10; // Segundos
 const userCardCells = {};
-let currentMarkingMode = 'auto';
+let currentMarkingMode = "auto"; // SIEMPRE comienza en automático.
 let isWaitingForBingoVerification = false;
 let currentUserId = $('body').data('user-id');
 
-// Recuperamos marcas manuales del teléfono del usuario (para que no se borren al recargar)
+// Persiste marcas manuales solo si usuario elige ese modo
 let manualMarkedCells = JSON.parse(localStorage.getItem('manualMarkedCells') || '{}');
 
-const socket = io(); // Conexión en tiempo real
+const socket = io();
 
-// =================================================================
-// 2. ESCUCHADORES (SOCKETS)
-// =================================================================
-
+// ======================== SOCKETS ========================
 socket.on('estado_bingo_actualizado', function(response) {
-    procesarEstadoBingo(response);
+    console.log('Números cantados recibidos:', response.numbers_called); // DEBUG
+    procesarEstadoBingo(response); // Recibe el array de números ya cantados
 });
 
 socket.on('mensaje_recibido', function(msg) {
@@ -124,12 +119,44 @@ socket.on('mensaje_recibido', function(msg) {
             <span class="message-text">${msg.content || msg.message_text}</span>
         </div>`;
     $('#chat-box').prepend(messageElement);
+    // Opcional: auto-scroll
+    $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);
 });
 
-// =================================================================
-// 3. LÓGICA DEL BINGO (EL CEREBRO)
-// =================================================================
+// ====================== MARCADO DE CARTONES ======================
+function actualizarMarcadoEnCartones(numbersCalled) {
+    // Por robustez, asegúrate que sean strings o números
+    const numsSet = new Set(numbersCalled.map(n => parseInt(n)));
 
+    $('.bingo-card table').each(function() {
+        const table = $(this);
+        const cardId = table.attr('id').replace('-table', '');
+
+        table.find('td').each(function() {
+            const cell = $(this);
+            const raw = cell.text().trim();
+            // No marca "FREE" ni vacío
+            if (raw === "FREE" || raw === "") return; 
+            const num = parseInt(raw);
+            if (isNaN(num)) return;
+
+            if (currentMarkingMode === 'auto') {
+                // Marca si el número está entre los cantados
+                if (numsSet.has(num)) cell.addClass('marked');
+                else cell.removeClass('marked');
+            } else {
+                // Manual: verifica localStorage
+                if (manualMarkedCells[cardId] && manualMarkedCells[cardId].includes(num.toString())) {
+                    cell.addClass('marked');
+                } else {
+                    cell.removeClass('marked');
+                }
+            }
+        });
+    });
+}
+
+// =============================== ESTADO DE JUEGO ===============================
 function procesarEstadoBingo(response) {
     if (!response) return;
 
@@ -138,12 +165,13 @@ function procesarEstadoBingo(response) {
     const calledNumbersGrid = $('#calledNumbersGrid');
     const bingoButtons = $('.bingo-call-btn');
 
-    // --- A. GESTIÓN DE LA PAUSA (BLOQUEO DE BOTONES) ---
+    // Pausa o verificación = bloquear botones.
     if (response.status === 'paused') {
         bingoButtons.prop('disabled', true).text('Verificando Bingo...');
         bingoStatusMessage.text('Partida en pausa, verificando un cartón...');
     } else if (response.status === 'active') {
         bingoButtons.prop('disabled', false).text('¡Cantar BINGO!');
+        bingoStatusMessage.text('¡Partida activa! Marca tus cartones.');
     } else if (response.status === 'finished') {
         if (response.winner_user_id == currentUserId) {
             window.location.href = `/felicidades/${response.game_id}`;
@@ -155,8 +183,7 @@ function procesarEstadoBingo(response) {
         return;
     }
 
-    // --- B. LISTA DE NÚMEROS (SIN SPOILERS) ---
-    // Filtramos para que el número que se está cantando NO salga abajo todavía
+    // Mostrar números cantados (bajo el temporizador)
     let listNumbers = [...(response.numbers_called || [])];
     if (response.current_calling_number && listNumbers.includes(response.current_calling_number)) {
         listNumbers = listNumbers.filter(n => n !== response.current_calling_number);
@@ -168,19 +195,16 @@ function procesarEstadoBingo(response) {
         calledNumbersGrid.append(`<div class="called-number-item ${isLast ? 'highlighted' : ''}">${num}</div>`);
     });
 
-    // --- C. ACTUALIZAR MARCADO (AUTO Y MANUAL) ---
+    // Marcar cartones automáticamente según los números
     actualizarMarcadoEnCartones(response.numbers_called || []);
 
-    // --- D. TEMPORIZADOR Y PANTALLA GRANDE ---
+    // Temporizador "próximo número"
     clearInterval(countdownInterval);
-
     if (response.current_calling_number !== null && response.call_start_time_timestamp !== null) {
-        // MODO: CONTANDO...
         bingoDisplay.removeClass('revealed hidden').addClass('calling');
         bingoStatusMessage.text(`Próximo número en...`);
         startCountdown(response.call_start_time_timestamp, bingoDisplay, response.current_calling_number);
     } else if (response.last_number !== null) {
-        // MODO: REVELADO
         bingoDisplay.removeClass('hidden calling').addClass('revealed');
         bingoDisplay.text(response.last_number);
         if (response.status !== 'paused') bingoStatusMessage.text('¡Número Cantado!');
@@ -192,16 +216,13 @@ function procesarEstadoBingo(response) {
 
 function startCountdown(startTime, displayElement, numberToReveal) {
     const endTime = startTime + (REVEAL_DURATION * 1000);
-    
     countdownInterval = setInterval(() => {
         const timeLeft = Math.max(0, endTime - Date.now());
         const seconds = (timeLeft / 1000).toFixed(1);
-        
         if (timeLeft <= 0) {
             clearInterval(countdownInterval);
-            displayElement.text(numberToReveal); // Revelamos el secreto
+            displayElement.text(numberToReveal);
             displayElement.removeClass('calling').addClass('revealed');
-            // Refrescamos la lista pequeña para que ahora sí aparezca el número abajo
             socket.emit('solicitar_estado_actual'); 
         } else {
             displayElement.text(`${seconds}s`);
@@ -209,67 +230,34 @@ function startCountdown(startTime, displayElement, numberToReveal) {
     }, 100);
 }
 
-function actualizarMarcadoEnCartones(numbersCalled) {
-    $('.bingo-card table').each(function() {
-        const table = $(this);
-        const cardId = table.attr('id').replace('-table', '');
-        
-        table.find('td').each(function() {
-            const cell = $(this);
-            const num = parseInt(cell.text().trim());
-            if (isNaN(num)) return; // Ignorar FREE
-
-            if (currentMarkingMode === 'auto') {
-                if (numbersCalled.includes(num)) cell.addClass('marked');
-                else cell.removeClass('marked');
-            } else {
-                // Modo Manual: Recuperar del localStorage
-                if (manualMarkedCells[cardId] && manualMarkedCells[cardId].includes(num.toString())) {
-                    cell.addClass('marked');
-                } else {
-                    cell.removeClass('marked');
-                }
-            }
-        });
-    });
-}
-
-// =================================================================
-// 4. INICIALIZACIÓN (CUANDO CARGA LA PÁGINA)
-// =================================================================
-
+// ===================== INICIALIZACIÓN Y EVENTOS =======================
 $(document).ready(function() {
-    // Guardar estructura de cartones
+    // Siempre inicia en modo automático.
+    currentMarkingMode = "auto";
+    $('#markingMode').val('auto');
+    localStorage.setItem('bingoMarkingMode', 'auto');
+
+    // Guardar estructura de cartones (opcional)
     $('.bingo-card').each(function() {
         const cardId = $(this).attr('id').replace('-table', '');
         userCardCells[cardId] = {};
     });
 
-    // Cargar modo de marcado guardado
-    const savedMode = localStorage.getItem('bingoMarkingMode');
-    if (savedMode) {
-        currentMarkingMode = savedMode;
-        $('#markingMode').val(savedMode);
-    }
-
     $('#markingMode').on('change', function() {
         currentMarkingMode = $(this).val();
         localStorage.setItem('bingoMarkingMode', currentMarkingMode);
-        socket.emit('solicitar_estado_actual'); // Refrescar vista
+        socket.emit('solicitar_estado_actual');
     });
 
-    // Clic en celdas (Marcado Manual)
+    // Marcado manual sólo si el usuario lo elige
     $(document).on('click', '.bingo-card td', function() {
         if (currentMarkingMode === 'manual') {
             const cell = $(this);
             const num = cell.text().trim();
             if (num === 'FREE' || isNaN(num)) return;
-
             const cardId = cell.closest('table').attr('id').replace('-table', '');
             cell.toggleClass('marked');
-
             if (!manualMarkedCells[cardId]) manualMarkedCells[cardId] = [];
-            
             if (cell.hasClass('marked')) {
                 if (!manualMarkedCells[cardId].includes(num)) manualMarkedCells[cardId].push(num);
             } else {
@@ -283,7 +271,6 @@ $(document).ready(function() {
     $(document).on('click', '.bingo-call-btn', function() {
         const btn = $(this);
         if (!confirm('¿Cantar BINGO? Se pausará el juego.')) return;
-        
         btn.prop('disabled', true).text('Verificando...');
         $.ajax({
             url: '/api/call_bingo',
@@ -294,24 +281,43 @@ $(document).ready(function() {
                 card_data: btn.data('card-data')
             }),
             success: (res) => alert(res.message),
-            error: (err) => {
+            error: () => {
                 alert("Error al cantar bingo");
                 btn.prop('disabled', false).text('¡Cantar BINGO!');
             }
         });
     });
-  // =================================================================
-// 5. FUNCIONES DE CHAT Y NAVEGACIÓN (Faltaban estas)
-// =================================================================
+
+    // Chat y Navegación
+    $('#send-chat-message-btn').on('click', sendMessage);
+    $('#chat-message-input').on('keyup', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+    $('#btn-show-cartones').on('click', () => switchView('cartones'));
+    $('#btn-show-chat').on('click', () => switchView('chat'));
+});
+
+// =============== CHAT ===============
+function sendMessage() {
+    const messageInput = $('#chat-message-input');
+    const messageText = messageInput.val().trim();
+
+    if (messageText === '') return;
+    $.ajax({
+        url: '/chat/send_message',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ message: messageText }),
+        success: function() { messageInput.val(''); },
+        error: function() { alert('Error al enviar el mensaje'); }
+    });
+}
 
 function switchView(viewToShow) {
     const chatInputArea = $('.chat-input-area');
     const chatBox = $('#chat-box');
-
-    // Ocultar todo
     $('.content-view').removeClass('active');
     $('.nav-button').removeClass('active');
-
     if (viewToShow === 'cartones') {
         $('#view-cartones').addClass('active');
         $('#btn-show-cartones').addClass('active');
@@ -322,40 +328,9 @@ function switchView(viewToShow) {
         $('#btn-show-chat').addClass('active');
         chatInputArea.removeClass('hidden');
         chatBox.addClass('with-fixed-input');
-        
-        // Hacer scroll automático hacia abajo al abrir el chat
         chatBox.scrollTop(chatBox[0].scrollHeight);
     }
 }
-
-async function sendMessage() {
-    const messageInput = $('#chat-message-input');
-    const messageText = messageInput.val().trim();
-    
-    if (messageText === '') return; // No enviar si está vacío
-    
-    try {
-        await $.ajax({
-            url: '/chat/send_message',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ message: messageText })
-        });
-        
-        // ¡ESTO ES LO QUE BORRA EL TEXTO DEL INPUT AL ENVIAR!
-        messageInput.val('');
-        
-    } catch (error) {
-        console.error('Error al enviar el mensaje:', error);
-    }
-}
-    // Chat y Navegación (Funciones que ya tenías)
-    $('#send-chat-message-btn').on('click', sendMessage);
-    $('#btn-show-cartones').on('click', () => switchView('cartones'));
-    $('#btn-show-chat').on('click', () => switchView('chat'));
-});
-
-// (Aquí puedes pegar tus funciones switchView, sendMessage y fetchMessages tal cual las tenías)
-</script>
+        </script>
 </body>
     </html>
