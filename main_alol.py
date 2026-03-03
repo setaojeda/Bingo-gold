@@ -570,7 +570,6 @@ def felicidades(game_id):
                            whatsapp_link=whatsapp_link)
 
 
-
 @app.route('/chat/send_message', methods=['POST'])
 @login_required
 def send_chat_message():
@@ -588,14 +587,16 @@ def send_chat_message():
     db.session.add(new_message)
     db.session.commit()
 
-    # ¡AQUÍ ESTABA EL ERROR! (Antes decía 'content': content)
-    socketio.emit('mensaje_recibido', {
-        'username': current_user.username,
-        'content': message_text, 
-        'timestamp': datetime.now().strftime('%H:%M')
-    })
+    socketio.emit(
+        'mensaje_recibido',
+        {
+            'username': current_user.username,
+            'content': message_text,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        },
+        broadcast=True
+    )
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
-# --- RUTAS DE ADMINISTRACIÃ“N ---
 
 
 @app.route('/tu_pagina_secreta')
