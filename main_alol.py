@@ -579,9 +579,13 @@ def send_chat_message():
     if not message_text:
         return jsonify({'error': 'El mensaje no puede estar vacío.'}), 400
 
+    # --- EL TRUCO MAGICO AQUÍ ---
+    # Si tiene username lo usamos, si no, cortamos su email hasta el @
+    nombre_usuario = current_user.username if current_user.username else current_user.email.split('@')[0]
+
     new_message = ChatMessage(
         user_id=current_user.id,
-        username=current_user.username,
+        username=nombre_usuario, # Ahora nunca será nulo
         message_text=message_text
     )
     db.session.add(new_message)
@@ -590,13 +594,13 @@ def send_chat_message():
     socketio.emit(
         'mensaje_recibido',
         {
-            'username': current_user.username,
+            'username': nombre_usuario, # Mandamos el nombre corregido al HTML
             'content': message_text,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        },
-        broadcast=True
+            'timestamp': datetime.now().strftime('%H:%M')
+        }
     )
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
+
 
 
 @app.route('/tu_pagina_secreta')
