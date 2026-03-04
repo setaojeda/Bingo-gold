@@ -113,7 +113,12 @@ const REVEAL_DURATION = 10;
 let isWaitingForBingoVerification = false;
 
 // --- INDEXAR CARTONES AL CARGAR ---
-$(document).ready(function() {
+$(document).ready(function() { 
+    $.get('/chat/history', function(mensajes) {
+        mensajes.forEach(function(msg) {
+            mostrarMensajeChat(msg);
+        });
+    });
     $('.bingo-card').each(function() {
         const cardId = $(this).attr('id').replace('-table', '');
         userCardCells[cardId] = {};
