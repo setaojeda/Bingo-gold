@@ -22,8 +22,8 @@
       #notification-banner.hidden { display: none; }
       .chat-input-area { position: relative; }
     </style>
-</head>
-<body data-current-user="{{ current_user.username | e }}" data-user-id="{{ current_user.id }}">
+</head> 
+    <body data-current-user="{{ current_user.username if current_user.username else current_user.email.split('@')[0] }}" data-user-id="{{ current_user.id }}">
 
     <main>
         <div id="view-cartones" class="content-view active">
