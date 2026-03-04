@@ -91,6 +91,19 @@ class User(UserMixin, db.Model):
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
 
+    @property
+    def is_profile_complete(self):
+        # Ahora usa telefono en lugar de phone
+        return self.username and self.telefono
+
+    @property
+    def next_step(self):
+        if not self.username:
+            return 'username'
+        if not self.telefono:
+            return 'telefono'
+        return 'complete'
+    
     def __repr__(self):
         return f"User('{self.email}')"
 
@@ -242,16 +255,36 @@ def index():
     return render_template('index_2.html', active_games=active_games)
 
 
+@app.route('/complete-profile')
+@login_required
+def complete_profile():
+    if current_user.is_profile_complete:
+        return redirect(url_for('index')) # O a la ruta de tus cartones
+    return render_template('complete_profile.html')
 
-@app.before_request
-def check_profile_completion():
-    g.show_profile_modal = False
-    if current_user.is_authenticated and not current_user.is_anonymous:
-        profile_incomplete = not current_user.username or not current_user.telefono
-        is_safe_endpoint = request.endpoint in ['static', 'complete_profile', 'security.logout']
 
-        if profile_incomplete and not is_safe_endpoint:
-            g.show_profile_modal = True
+@app.route('/update-profile-step', methods=['POST'])
+@login_required
+def update_profile_step():
+    step = request.form.get('step')
+
+    if step == 'username':
+        username = request.form.get('username')
+        if username:
+            current_user.username = username
+            db.session.commit()
+            flash('¡Nombre de usuario guardado!', 'success')
+
+    elif step == 'telefono': # <--- Cambiado
+        val_telefono = request.form.get('telefono') # <--- Cambiado
+        if val_telefono:
+            current_user.telefono = val_telefono # <--- Cambiado
+            db.session.commit()
+            flash('¡Teléfono guardado!', 'success')
+
+    return redirect(url_for('complete_profile'))
+
+
 
 def emitir_estado_bingo():
     """Recolecta el estado de la partida activa o pausada y lo emite por WebSocket."""
