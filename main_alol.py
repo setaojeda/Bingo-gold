@@ -589,7 +589,6 @@ def send_chat_message():
     db.session.add(new_message)
     db.session.commit()
 
-    # ¡AQUÍ ESTÁ EL CAMBIO! Agregamos broadcast y namespace
     socketio.emit(
         'mensaje_recibido',
         {
@@ -597,9 +596,9 @@ def send_chat_message():
             'content': message_text,
             'timestamp': datetime.now().strftime('%H:%M')
         },
-        broadcast=True,
         namespace='/'
     )
+    
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
 
 
