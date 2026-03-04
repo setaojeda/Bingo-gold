@@ -579,28 +579,44 @@ def send_chat_message():
     if not message_text:
         return jsonify({'error': 'El mensaje no puede estar vacío.'}), 400
 
-    # --- EL TRUCO MAGICO AQUÍ ---
-    # Si tiene username lo usamos, si no, cortamos su email hasta el @
     nombre_usuario = current_user.username if current_user.username else current_user.email.split('@')[0]
 
     new_message = ChatMessage(
         user_id=current_user.id,
-        username=nombre_usuario, # Ahora nunca será nulo
+        username=nombre_usuario,
         message_text=message_text
     )
     db.session.add(new_message)
     db.session.commit()
 
+    # ¡AQUÍ ESTÁ EL CAMBIO! Agregamos broadcast y namespace
     socketio.emit(
         'mensaje_recibido',
         {
-            'username': nombre_usuario, # Mandamos el nombre corregido al HTML
+            'username': nombre_usuario,
             'content': message_text,
             'timestamp': datetime.now().strftime('%H:%M')
-        }
+        },
+        broadcast=True,
+        namespace='/'
     )
     return jsonify({'success': True, 'message': 'Mensaje enviado.'}), 201
 
+
+# --- ¡NUEVA RUTA! Cargar historial al abrir la página ---
+@app.route('/chat/history', methods=['GET'])
+@login_required
+def get_chat_history():
+    # Trae los últimos 50 mensajes ordenados por fecha
+    mensajes = ChatMessage.query.order_by(ChatMessage.timestamp.asc()).limit(50).all()
+    historial = []
+    for msg in mensajes:
+        historial.append({
+            'username': msg.username,
+            'content': msg.message_text,
+            'timestamp': msg.timestamp.strftime('%H:%M') if msg.timestamp else ""
+        })
+    return jsonify(historial)
 
 
 @app.route('/tu_pagina_secreta')
