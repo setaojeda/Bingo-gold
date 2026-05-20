@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Página Sencilla</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Desarrollo.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(149deg,rgba(0, 0, 36, 1) 0%, rgba(8, 8, 69, 1) 35%, rgba(12, 46, 51, 1) 100%);
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        #listaDisponibilidad {
+            display: none; /* Oculta la lista por defecto */
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px; /* Bordes redondeados */
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .disponible { color: green; }
+        .ocupado { color: red; text-decoration: line-through; }
+        #mostrarListaBtn { cursor: pointer; color: blue; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="navbar-image">
+             <h2>Bingo<b>Gold</b></h2>
+        </div>
+        <div class="hamburger-menu" id="hamburger-menu">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+    </nav>
+
+    <div class="menu-overlay" id="menu-overlay">
+        <ul class="menu-list">
+            <li><a href="/">Inicio</a></li>
+            <li><a href="/#">eliminar</a></li>
+        </ul>
+    </div>
+
+<div class="lista-estilizada">
+    <ul>
+        <li>🍀Por los momentos sólo</li>
+        <li>tenemos los Métodos de</li>
+        <li>pago móvil 🍀</li>
+        <li><strong>Tlf:</strong>📱 04142170004</li>
+        <li><strong>Cl:</strong>©️ 33293599</li>
+        <li><strong>Banco:</strong>🏦 Banco de</li>
+        <li>Venezuela🇻🇪</li>
+        <li><strong>Monto a pagar 15 Bs</strong></li>
+        <li>⚠️Subir cap del pago⬇️</li>
+
+    </ul>
+    <p id="mostrarListaBtn" onclick="toggleListaDisponibilidad()">Lista de Disp</p>
+    <div id="listaDisponibilidad"></div>
+<div class="telefono-container">
+    <form action="/pagina_en_desarrollo" method="post" enctype="multipart/form-data">
+        <label for="telefono">ultimos 4 Nro de ref:⬇️</label><br>
+        <input type="tel" id="telefono" name="telefono" placeholder="Ej: 6528" required>
+
+     <div class="carton-container">
+            <label for="numeros_carton">Números de cartones (separa por comas ",")</label><br>
+    <input type="text" id="numeros_carton" name="numeros_carton" placeholder="Ej: 20,30,40" required><br><br>
+        </div>
+               <div class="imagen-container">
+                <label for="imagen_pago">Cap del pago:⬇️</label><br>
+                <input type="file" id="imagen_pago" name="imagen_pago" accept="image/*" required>
+            </div>
+            <button type="submit">Enviar</button>
+    </form>
+</div>
+<div class="instruccione">
+    <ul>
+        <li>⚠️<strong>Instrucciones</strong>⚠️</li>
+        <li>1️⃣Ingrese su numero de tlf⬆️</li>
+        <li>2️⃣Seleccione su Carton⬆️</li>
+        <li>3️⃣Subir el cap del pago⬆️</li>
+    </ul>
+</div>
+</body>
+<script>
+    async function toggleListaDisponibilidad() {
+        const listaDiv = document.getElementById('listaDisponibilidad');
+        if (listaDiv.style.display === 'none') {
+            // Cargar la lista solo si está oculta
+            await cargarListaDisponibilidad(); // Espera a que cargarListaDisponibilidad termine
+        } else {
+            listaDiv.style.display = 'none';
+        }
+    }
+
+    async function cargarListaDisponibilidad() {
+        const listaDiv = document.getElementById('listaDisponibilidad');
+        listaDiv.innerHTML = 'Cargando disponibilidad...'; // Mostrar mensaje de carga
+        listaDiv.style.display = 'block'; // Mostrar el div mientras carga
+
+        try {
+            const response = await fetch('/api/numeros_ocupados');
+            const data = await response.json();
+            const numerosOcupados = new Set(data.ocupados);
+
+            let htmlContent = '<h3>Disponibilidad:</h3><p>';
+            for (let i = 1; i <= 100; i++) {
+                if (numerosOcupados.has(i)) {
+                    htmlContent += `<span class="ocupado">${i}</span> `;
+                } else {
+                    htmlContent += `<span class="disponible">${i}</span> `;
+                }
+            }
+            htmlContent += '</p>';
+            listaDiv.innerHTML = htmlContent; // Actualizar con los datos
+            // listaDiv.style.display = 'block'; // Ya está visible desde el principio de esta función
+
+        } catch (error) {
+            console.error('Error al cargar la lista de disponibilidad:', error);
+            listaDiv.innerHTML = 'Error al cargar la disponibilidad. Intente de nuevo más tarde.';
+            listaDiv.style.display = 'block'; // Asegúrate de que se muestre el mensaje de error
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const hamburgerMenu = document.getElementById('hamburger-menu');
+    const menuOverlay = document.getElementById('menu-overlay');
+
+    if (hamburgerMenu && menuOverlay) {
+        console.log('Ambos elementos encontrados. AÃ±adiendo event listener.'); // Mensaje de depuraciÃ³n
+        hamburgerMenu.addEventListener('click', function() {
+            console.log('Clic en hamburguesa. Toggleando clases.'); // Mensaje de depuraciÃ³n
+            hamburgerMenu.classList.toggle('open');
+            menuOverlay.classList.toggle('show');
+        });
+
+        // Opcional: Cierra el menÃº si se hace clic en un enlace
+        menuOverlay.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function() {
+                hamburgerMenu.classList.remove('open');
+                menuOverlay.classList.remove('show');
+            });
+        });
+    } else {
+        console.error('ERROR: No se encontrÃ³ el elemento hamburgerMenu o menuOverlay.'); // Mensaje de error si falta algo
+        if (!hamburgerMenu) console.error('hamburgerMenu es NULL');
+        if (!menuOverlay) console.error('menuOverlay es NULL');
+    }
+});
+</script>
+</html>
